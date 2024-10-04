@@ -5,10 +5,12 @@ import Header from "./components/Header";
 import MainContent from "./components/MainContent";
 import SignUpModal from "./components/SignUpModal";
 import LoginModal from "./components/LoginModal";
+import EmailSignUpModal from "./components/EmailSignUpModal";
 
 export default function Home() {
   const [isModalOpen, setIsModalOpen] = useState(false);       // サインアップモーダル
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false); // ログインモーダル
+  const [isEmailSignUpModalOpen, setIsEmailSignUpModalOpen] = useState(false); // 新しいメールサインアップモーダル
 
   const openSignUpModal = () => {
     setIsModalOpen(true);
@@ -37,6 +39,15 @@ export default function Home() {
     openSignUpModal();
   }
 
+  const openEmailSignUpModal = () => {
+    setIsEmailSignUpModalOpen(true);
+    closeSignUpModal();
+  };
+
+  const closeEmailSignUpModal = () => {
+    setIsEmailSignUpModalOpen(false);
+  };
+
   return (
     <div className="font-sans">
       {/* Header */}
@@ -53,6 +64,7 @@ export default function Home() {
         isOpen={isModalOpen}
         onClose={closeSignUpModal}
         onLoginClick={handleSwitchToLogin} // ログインボタンがクリックされたときのハンドラ
+        onEmailSignUpClick={openEmailSignUpModal} // メールサインアップボタンを追加
       />
 
       {/* Login Modal */}
@@ -60,6 +72,10 @@ export default function Home() {
         isOpen={isLoginModalOpen}
         onClose={closeLoginModal}
         onSignUpClick={handleSwitchToSignUp}
+      />
+      <EmailSignUpModal
+        isOpen={isEmailSignUpModalOpen}
+        onClose={closeEmailSignUpModal}
       />
     </div>
   );
