@@ -10,6 +10,8 @@ import (
 type IAuthRepository interface {
 	CreateUser(user models.User) error
 	FindUser(email string) (*models.User, error)
+	FindUserByToken(token string) (*models.User, error)
+	UpdateUser(user *models.User) error
 }
 
 type AuthRepository struct {
@@ -38,4 +40,17 @@ func (r *AuthRepository) FindUser(email string) (*models.User, error) {
 		return nil, result.Error
 	}
 	return &user, nil
+}
+
+func (r *AuthRepository) FindUserByToken(token string) (*models.User, error) {
+	var user models.User
+	result := r.db.Where("verification_token = ?", token).First(&user)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return &user, nil
+}
+
+func (r *AuthRepository) UpdateUser(user *models.User) error {
+	return r.db.Save(user).Error
 }

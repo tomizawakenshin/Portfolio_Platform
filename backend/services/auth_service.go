@@ -11,9 +11,10 @@ import (
 )
 
 type IAuthService interface {
-	SignUp(email string, password string) error
+	SignUp(email string, password string, verificationToken string) error
 	Login(email string, password string) (*string, error)
 	// GetUserFromToken(tokenString string) (*models.User, error)
+	VerifyUser(token string) error
 }
 
 type AuthService struct {
@@ -24,18 +25,32 @@ func NewAuthService(repository reposotories.IAuthRepository) IAuthService {
 	return &AuthService{repository: repository}
 }
 
-func (s *AuthService) SignUp(email string, password string) error {
+func (s *AuthService) SignUp(email string, password string, verificationToken string) error {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return err
 	}
 
 	user := models.User{
-		Email:    email,
-		Password: string(hashedPassword),
+		Email:             email,
+		Password:          string(hashedPassword),
+		IsVerified:        false,             // 仮登録として作成
+		VerificationToken: verificationToken, // 本登録用トークンを保存
 	}
 
 	return s.repository.CreateUser(user)
+}
+
+func (s *AuthService) VerifyUser(token string) error {
+	user, err := s.repository.FindUserByToken(token)
+	if err != nil {
+		return err
+	}
+
+	// isVerifiedをtrueに更新
+	user.IsVerified = true
+	user.VerificationToken = "" // トークンはクリアする
+	return s.repository.UpdateUser(user)
 }
 
 func (s *AuthService) Login(email string, password string) (*string, error) {

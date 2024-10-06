@@ -29,3 +29,11 @@ services:
       - ./docker/pgadmin:/var/lib/pgadmin
     depends_on:
       - postgres
+
+  mailhog:
+    image: mailhog/mailhog
+    container_name: mailhog
+    ports:
+      - 1025:1025 # SMTPサーバーがリッスンするポート
+      - 8025:8025 # Web UIがリッスンするポート
+    restart: always

@@ -3,6 +3,11 @@ package controllers
 import (
 	"backend/dto"
 	"backend/services"
+	"crypto/rand"
+	"encoding/hex"
+
+	// "fmt"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -11,14 +16,19 @@ import (
 type IAuthController interface {
 	SignUp(ctx *gin.Context)
 	Login(ctx *gin.Context)
+	VerifyAccount(ctx *gin.Context)
 }
 
 type AuthController struct {
-	services services.IAuthService
+	services     services.IAuthService
+	emailService services.IEmailService
 }
 
-func NewAuthController(service services.IAuthService) IAuthController {
-	return &AuthController{services: service}
+func NewAuthController(service services.IAuthService, emailService services.IEmailService) IAuthController {
+	return &AuthController{
+		services:     service,
+		emailService: emailService,
+	}
 }
 
 func (c *AuthController) SignUp(ctx *gin.Context) {
@@ -28,13 +38,54 @@ func (c *AuthController) SignUp(ctx *gin.Context) {
 		return
 	}
 
-	err := c.services.SignUp(input.Email, input.Password)
+	// 本登録用のトークンを生成
+	verificationToken := generateVerificationToken()
+
+	err := c.services.SignUp(input.Email, input.Password, verificationToken)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create User"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create Temporary User"})
 		return
 	}
 
-	ctx.Status(http.StatusCreated)
+	// 本登録リンクを生成（トークン付き）
+	// verificationLink := fmt.Sprintf("https://your-frontend.vercel.app/verify?token=%s", verificationToken)
+
+	// メール送信
+	if err := c.emailService.SendRegistrationEmail(input.Email, verificationToken); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send email"})
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, gin.H{"message": "仮登録が完了しました。メールを確認してください。"})
+}
+
+func generateVerificationToken() string {
+	// 16バイトのランダムなトークンを生成
+	token := make([]byte, 16)
+	_, err := rand.Read(token)
+	if err != nil {
+		log.Fatalf("Failed to generate token: %v", err)
+	}
+
+	// トークンを16進数にエンコード
+	return hex.EncodeToString(token)
+}
+
+func (c *AuthController) VerifyAccount(ctx *gin.Context) {
+	token := ctx.Query("token")
+	if token == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Token is required"})
+		return
+	}
+
+	err := c.services.VerifyUser(token)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// ctx.JSON(http.StatusOK, gin.H{"message": "アカウントが有効化されました。"})
+	ctx.Redirect(http.StatusFound, "http://localhost:3000/home")
 }
 
 func (c *AuthController) Login(ctx *gin.Context) {
