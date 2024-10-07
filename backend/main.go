@@ -3,6 +3,7 @@ package main
 import (
 	"backend/controllers"
 	"backend/infra"
+	"backend/middlewares"
 	reposotories "backend/repositories"
 	"backend/services"
 	"time"
@@ -19,6 +20,10 @@ func setupRouter(db *gorm.DB) *gin.Engine {
 	emailService := services.NewEmailService()
 	authController := controllers.NewAuthController(authService, emailService)
 
+	userRepository := reposotories.NewUserRepository(db)
+	userService := services.NewUserService(userRepository)
+	userController := controllers.NewUserController(userService)
+
 	r := gin.Default()
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:3000", "https://your-frontend.vercel.app", "http://localhost:8025/#"}, // フロントエンドのドメインを許可
@@ -34,6 +39,10 @@ func setupRouter(db *gorm.DB) *gin.Engine {
 	authRouter.POST("/signup", authController.SignUp)
 	authRouter.POST("/login", authController.Login)
 	authRouter.GET("/verify", authController.VerifyAccount)
+
+	//user情報関連のエンドポイント
+	userRouterWithAuth := r.Group("/user", middlewares.AuthMiddleware(authService))
+	userRouterWithAuth.GET("/GetInfo", userController.GetUserInfo)
 
 	return r
 

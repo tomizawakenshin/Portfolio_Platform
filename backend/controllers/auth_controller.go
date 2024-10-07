@@ -78,11 +78,19 @@ func (c *AuthController) VerifyAccount(ctx *gin.Context) {
 		return
 	}
 
-	err := c.services.VerifyUser(token)
+	user, err := c.services.VerifyUser(token)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	jwtToken, err := c.services.CreateToken(user.ID, user.Email)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create JWT token"})
+		return
+	}
+
+	ctx.SetCookie("jwt-token", *jwtToken, 3600*24, "/", "localhost", false, true)
 
 	// ctx.JSON(http.StatusOK, gin.H{"message": "アカウントが有効化されました。"})
 	ctx.Redirect(http.StatusFound, "http://localhost:3000/home")
