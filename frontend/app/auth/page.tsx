@@ -6,11 +6,14 @@ import MainContent from "../components/MainContent";
 import SignUpModal from "../components/SignUpModal";
 import LoginModal from "../components/LoginModal";
 import EmailSignUpModal from "../components/EmailSignUpModal";
+import SignUpCompleteModal from "../components/SignUpCompleteModal";
 
 export default function Home() {
   const [isModalOpen, setIsModalOpen] = useState(false);       // サインアップモーダル
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false); // ログインモーダル
   const [isEmailSignUpModalOpen, setIsEmailSignUpModalOpen] = useState(false); // 新しいメールサインアップモーダル
+  const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
+  const [userEmail, setUserEmail] = useState("");
 
   const openSignUpModal = () => {
     setIsModalOpen(true);
@@ -48,6 +51,15 @@ export default function Home() {
     setIsEmailSignUpModalOpen(false);
   };
 
+  const handleSignUpComplete = (email: string) => {
+    setUserEmail(email);
+    setIsCompleteModalOpen(true);
+  };
+
+  const closeCompleteModal = () => {
+    setIsCompleteModalOpen(false);
+  };
+
   return (
     <div className="font-sans">
       {/* Header */}
@@ -73,9 +85,17 @@ export default function Home() {
         onClose={closeLoginModal}
         onSignUpClick={handleSwitchToSignUp}
       />
+
       <EmailSignUpModal
         isOpen={isEmailSignUpModalOpen}
         onClose={closeEmailSignUpModal}
+        onComplete={handleSignUpComplete}
+      />
+
+      <SignUpCompleteModal
+        isOpen={isCompleteModalOpen}
+        onClose={closeCompleteModal}
+        email={userEmail}
       />
     </div>
   );

@@ -18,8 +18,6 @@ const HomePage = () => {
             })
             .then(data => {
                 setUser(data.user);
-                console.log(data.user)
-                console.log(user)
             })
             .catch(error => {
                 console.error('Error fetching user info:', error);
