@@ -72,12 +72,12 @@ func (s *AuthService) Login(email string, password string) (*string, error) {
 		return nil, err
 	}
 
-	token, err := s.CreateToken(foundUser.ID, foundUser.Email)
+	jwtToken, err := s.CreateToken(foundUser.ID, foundUser.Email)
 	if err != nil {
 		return nil, err
 	}
 
-	return token, nil
+	return jwtToken, nil
 }
 
 func (s *AuthService) CreateToken(userId uint, email string) (*string, error) {

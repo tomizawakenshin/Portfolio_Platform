@@ -1,5 +1,6 @@
 // components/LoginModal.tsx
-import { FC } from "react";
+import { useRouter } from "next/navigation";
+import React, { FC, useState } from "react";
 
 interface ModalProps {
     isOpen: boolean;
@@ -8,6 +9,11 @@ interface ModalProps {
 }
 
 const LoginModal: FC<ModalProps> = ({ isOpen, onClose, onSignUpClick }) => {
+    const router = useRouter();
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({});
+
     if (!isOpen) return null;
 
     const handleOverlayClick = () => {
@@ -15,7 +21,48 @@ const LoginModal: FC<ModalProps> = ({ isOpen, onClose, onSignUpClick }) => {
     };
 
     const handleModalContentClick = (e: React.MouseEvent<HTMLDivElement>) => {
-        e.stopPropagation();  // モーダル内のクリックは閉じないようにする
+        e.stopPropagation(); // モーダル内のクリックは閉じないようにする
+    };
+
+    // メールアドレスのバリデーション関数
+    const validateEmail = (email: string) => {
+        const re = /\S+@\S+\.\S+/;
+        return re.test(email);
+    };
+
+    const handleLogin = () => {
+        let validationErrors: { email?: string; password?: string } = {};
+
+        // ...バリデーション処理はそのまま...
+
+        // エラーメッセージをクリア
+        setErrors({});
+
+        // ログイン処理
+        fetch('http://localhost:8080/auth/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: 'include', // クッキーを含める
+            body: JSON.stringify({ email, password }),
+        })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        throw new Error(data.error || 'ログインに失敗しました');
+                    }).catch(() => {
+                        throw new Error('ログインに失敗しました');
+                    });
+                } else {
+                    // レスポンスボディをパースせずに次の処理へ
+                    onClose();
+                    router.push("/home");
+                }
+            })
+            .catch(error => {
+                setErrors({ general: error.message });
+            });
     };
 
     return (
@@ -34,7 +81,10 @@ const LoginModal: FC<ModalProps> = ({ isOpen, onClose, onSignUpClick }) => {
                     &#10005;
                 </button>
                 <h2 className="text-xl font-bold mb-4">ログイン</h2>
-                <button className=" w-full py-2 mb-4 border border-gray-300 rounded-md hover:bg-gray-200 font-bold">
+                {errors.general && (
+                    <div className="text-red-500 mb-4">{errors.general}</div>
+                )}
+                <button className="w-full py-2 mb-4 border border-gray-300 rounded-md hover:bg-gray-200 font-bold">
                     <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google Icon" className="inline-block mr-2" />
                     Googleでログイン
                 </button>
@@ -42,18 +92,31 @@ const LoginModal: FC<ModalProps> = ({ isOpen, onClose, onSignUpClick }) => {
                 <input
                     type="email"
                     placeholder="メールアドレス"
-                    className="w-full mb-4 p-2 border border-gray-300 rounded-md"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className={`w-full mb-2 p-2 border ${errors.email ? 'border-red-500' : 'border-gray-300'} rounded-md`}
                 />
+                {errors.email && (
+                    <div className="text-red-500 mb-2 text-sm">{errors.email}</div>
+                )}
                 <input
                     type="password"
                     placeholder="パスワード"
-                    className="w-full mb-4 p-2 border border-gray-300 rounded-md"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className={`w-full mb-2 p-2 border ${errors.password ? 'border-red-500' : 'border-gray-300'} rounded-md`}
                 />
+                {errors.password && (
+                    <div className="text-red-500 mb-2 text-sm">{errors.password}</div>
+                )}
                 <label className="flex items-center mb-4">
                     <input type="checkbox" className="form-checkbox" />
                     <span className="ml-2">ログイン状態を保持</span>
                 </label>
-                <button className="bg-orange-500 w-full py-2 text-white rounded-md hover:bg-orange-600">
+                <button
+                    className="bg-orange-500 w-full py-2 text-white rounded-md hover:bg-orange-600"
+                    onClick={handleLogin}
+                >
                     ログイン
                 </button>
                 <div className="text-center mt-4 text-sm">
@@ -64,7 +127,7 @@ const LoginModal: FC<ModalProps> = ({ isOpen, onClose, onSignUpClick }) => {
                     <a
                         href="#"
                         className="text-orange-500 hover:underline"
-                        onClick={onSignUpClick}  // ログインボタンのクリック時に呼び出す
+                        onClick={onSignUpClick}
                     >
                         登録
                     </a>

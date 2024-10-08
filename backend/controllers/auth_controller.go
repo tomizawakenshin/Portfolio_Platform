@@ -93,7 +93,6 @@ func (c *AuthController) VerifyAccount(ctx *gin.Context) {
 
 	ctx.SetCookie("jwt-token", *jwtToken, 3600*24, "/", "localhost", false, true)
 
-	// ctx.JSON(http.StatusOK, gin.H{"message": "アカウントが有効化されました。"})
 	ctx.Redirect(http.StatusFound, "http://localhost:3000/home")
 }
 
@@ -104,7 +103,7 @@ func (c *AuthController) Login(ctx *gin.Context) {
 		return
 	}
 
-	token, err := c.services.Login(input.Email, input.Password)
+	jwtToken, err := c.services.Login(input.Email, input.Password)
 	if err != nil {
 		if err.Error() == "user not found" {
 			ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
@@ -113,7 +112,10 @@ func (c *AuthController) Login(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	ctx.JSON(http.StatusOK, gin.H{"token": token})
+
+	ctx.SetCookie("jwt-token", *jwtToken, 3600*24, "/", "localhost", false, true)
+
+	// ctx.Redirect(http.StatusFound, "http://localhost:3000/home")
 }
 
 func (c *AuthController) Logout(ctx *gin.Context) {
