@@ -16,6 +16,7 @@ import (
 type IAuthController interface {
 	SignUp(ctx *gin.Context)
 	Login(ctx *gin.Context)
+	Logout(ctx *gin.Context)
 	VerifyAccount(ctx *gin.Context)
 }
 
@@ -113,4 +114,17 @@ func (c *AuthController) Login(ctx *gin.Context) {
 		return
 	}
 	ctx.JSON(http.StatusOK, gin.H{"token": token})
+}
+
+func (c *AuthController) Logout(ctx *gin.Context) {
+	err := c.services.Logout(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// クッキーを削除
+	ctx.SetCookie("jwt-token", "", -1, "/", "localhost", false, true)
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "ログアウトしました。"})
 }

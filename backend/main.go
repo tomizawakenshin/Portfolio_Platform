@@ -40,6 +40,9 @@ func setupRouter(db *gorm.DB) *gin.Engine {
 	authRouter.POST("/login", authController.Login)
 	authRouter.GET("/verify", authController.VerifyAccount)
 
+	authRouterWithAuth := r.Group("/auth", middlewares.AuthMiddleware(authService))
+	authRouterWithAuth.POST("/logout", authController.Logout)
+
 	//user情報関連のエンドポイント
 	userRouterWithAuth := r.Group("/user", middlewares.AuthMiddleware(authService))
 	userRouterWithAuth.GET("/GetInfo", userController.GetUserInfo)

@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -14,6 +15,7 @@ import (
 type IAuthService interface {
 	SignUp(email string, password string, verificationToken string) error
 	Login(email string, password string) (*string, error)
+	Logout(ctx *gin.Context) error
 	GetUserFromToken(tokenString string) (*models.User, error)
 	VerifyUser(token string) (*models.User, error)
 	CreateToken(userId uint, email string) (*string, error)
@@ -96,7 +98,7 @@ func (s *AuthService) CreateToken(userId uint, email string) (*string, error) {
 func (s *AuthService) GetUserFromToken(tokenString string) (*models.User, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected sogning method: %v", token.Header["alg"])
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 		return []byte(os.Getenv("SECRET_KEY")), nil
 	})
@@ -115,4 +117,9 @@ func (s *AuthService) GetUserFromToken(tokenString string) (*models.User, error)
 		}
 	}
 	return user, nil
+}
+
+func (s *AuthService) Logout(ctx *gin.Context) error {
+	// 必要に応じてトークンのブラックリスト化などを実装
+	return nil
 }

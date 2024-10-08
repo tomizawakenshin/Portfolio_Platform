@@ -20,7 +20,9 @@ const HomePage = () => {
             })
             .then(data => {
                 setUser(data.user);
-                if (!data.user.FirstName) {
+                // if (!data.user.FirstName) {
+                if (data.user.FirstName) {
+
                     setIsModalOpen(true); // FirstNameがnullならモーダルを開く
                 }
             })
