@@ -21,7 +21,7 @@ func setupRouter(db *gorm.DB) *gin.Engine {
 	authController := controllers.NewAuthController(authService, emailService)
 
 	userRepository := reposotories.NewUserRepository(db)
-	userService := services.NewUserService(userRepository)
+	userService := services.NewUserService(userRepository, authRepository)
 	userController := controllers.NewUserController(userService)
 
 	r := gin.Default()
@@ -43,6 +43,7 @@ func setupRouter(db *gorm.DB) *gin.Engine {
 	//user情報関連のエンドポイント
 	userRouterWithAuth := r.Group("/user", middlewares.AuthMiddleware(authService))
 	userRouterWithAuth.GET("/GetInfo", userController.GetUserInfo)
+	userRouterWithAuth.PUT("/UpdateMinimumUserInfo", userController.UpdateMinimumUserInfo)
 
 	return r
 
