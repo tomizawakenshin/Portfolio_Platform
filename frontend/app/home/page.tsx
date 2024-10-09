@@ -3,8 +3,10 @@
 import React, { useEffect, useState } from 'react';
 import { User } from '../types/User';
 import MnimumUserInfoInputModal from '../components/MinimumUserInfoInput';
+import { useRouter } from 'next/navigation';
 
 const HomePage = () => {
+    const router = useRouter();
     const [user, setUser] = useState<User | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -20,9 +22,7 @@ const HomePage = () => {
             })
             .then(data => {
                 setUser(data.user);
-                // if (!data.user.FirstName) {
-                if (data.user.FirstName) {
-
+                if (!data.user.FirstName) {
                     setIsModalOpen(true); // FirstNameがnullならモーダルを開く
                 }
             })
@@ -61,6 +61,24 @@ const HomePage = () => {
             });
     };
 
+    const handleLogout = () => {
+        fetch('http://localhost:8080/auth/logout', {
+            method: 'POST',
+            credentials: 'include',
+        })
+            .then(response => {
+                if (response.ok) {
+                    // ログアウト成功時の処理
+                    router.push("/auth"); // ログインページにリダイレクト
+                } else {
+                    throw new Error('Failed to logout');
+                }
+            })
+            .catch(error => {
+                console.error('Error during logout:', error);
+            });
+    };
+
     if (!user) {
         return <div>読み込み中...</div>;
     }
@@ -69,6 +87,9 @@ const HomePage = () => {
         <div>
             {/* ユーザーの情報があれば表示 */}
             <p>Welcome, {user.FirstName ? user.FirstName : 'Guest'}</p>
+
+            {/* ログアウトボタンを追加 */}
+            <button onClick={handleLogout}>ログアウト</button>
 
             {/* モーダルを表示 */}
             <MnimumUserInfoInputModal

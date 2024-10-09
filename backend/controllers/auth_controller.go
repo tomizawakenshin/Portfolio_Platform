@@ -44,12 +44,25 @@ func (c *AuthController) SignUp(ctx *gin.Context) {
 
 	err := c.services.SignUp(input.Email, input.Password, verificationToken)
 	if err != nil {
+		if err.Error() == "user already exists" {
+			// ユーザーが既に存在する場合はログイン処理に移行
+			jwtToken, err := c.services.Login(input.Email, input.Password)
+			if err != nil {
+				ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+				return
+			}
+
+			// 【変更点①】既存ユーザーでログインした場合、ステータスコードを http.StatusOK（200）に設定
+			ctx.SetCookie("jwt-token", *jwtToken, 3600*24, "/", "localhost", false, true)
+			ctx.JSON(http.StatusOK, gin.H{
+				"message": "Logged in successfully",
+				"token":   jwtToken})
+			return
+		}
+
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create Temporary User"})
 		return
 	}
-
-	// 本登録リンクを生成（トークン付き）
-	// verificationLink := fmt.Sprintf("https://your-frontend.vercel.app/verify?token=%s", verificationToken)
 
 	// メール送信
 	if err := c.emailService.SendRegistrationEmail(input.Email, verificationToken); err != nil {
@@ -57,6 +70,7 @@ func (c *AuthController) SignUp(ctx *gin.Context) {
 		return
 	}
 
+	// 【変更点②】新規ユーザー作成時、ステータスコードを http.StatusCreated（201）に設定
 	ctx.JSON(http.StatusCreated, gin.H{"message": "仮登録が完了しました。メールを確認してください。"})
 }
 
@@ -114,8 +128,6 @@ func (c *AuthController) Login(ctx *gin.Context) {
 	}
 
 	ctx.SetCookie("jwt-token", *jwtToken, 3600*24, "/", "localhost", false, true)
-
-	// ctx.Redirect(http.StatusFound, "http://localhost:3000/home")
 }
 
 func (c *AuthController) Logout(ctx *gin.Context) {

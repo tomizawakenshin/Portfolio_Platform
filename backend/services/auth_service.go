@@ -3,6 +3,7 @@ package services
 import (
 	"backend/models"
 	reposotories "backend/repositories"
+	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -30,6 +31,14 @@ func NewAuthService(repository reposotories.IAuthRepository) IAuthService {
 }
 
 func (s *AuthService) SignUp(email string, password string, verificationToken string) error {
+	// ユーザーが既に存在するか確認
+	_, err := s.repository.FindUser(email)
+	if err == nil {
+		// ユーザーが存在する場合はエラーを返す
+		return errors.New("user already exists")
+	}
+
+	// 新しいユーザーを作成
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return err
@@ -38,8 +47,8 @@ func (s *AuthService) SignUp(email string, password string, verificationToken st
 	user := models.User{
 		Email:             email,
 		Password:          string(hashedPassword),
-		IsVerified:        false,             // 仮登録として作成
-		VerificationToken: verificationToken, // 本登録用トークンを保存
+		IsVerified:        false,
+		VerificationToken: verificationToken,
 	}
 
 	return s.repository.CreateUser(user)

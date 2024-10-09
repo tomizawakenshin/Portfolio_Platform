@@ -1,9 +1,10 @@
 import { FC, useState } from "react";
+import { useRouter } from "next/navigation";
 
 interface EmailSignUpModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onComplete: (email: string) => void; // 追加
+    onComplete: (email: string) => void;
 }
 
 const EmailSignUpModal: FC<EmailSignUpModalProps> = ({ isOpen, onClose, onComplete }) => {
@@ -12,6 +13,8 @@ const EmailSignUpModal: FC<EmailSignUpModalProps> = ({ isOpen, onClose, onComple
     const [emailError, setEmailError] = useState("");
     const [passwordError, setPasswordError] = useState("");
     const [serverError, setServerError] = useState("");
+
+    const router = useRouter();
 
     if (!isOpen) return null;
 
@@ -55,16 +58,22 @@ const EmailSignUpModal: FC<EmailSignUpModalProps> = ({ isOpen, onClose, onComple
                 headers: {
                     "Content-Type": "application/json",
                 },
+                credentials: 'include', // クッキーを含める
                 body: JSON.stringify({ email, password }),
             });
 
-            if (!response.ok) {
+            if (response.status === 201) {
+                // アカウントが新規作成された場合の処理
+                onClose();
+                onComplete(email);
+            } else if (response.status === 200) {
+                // 既存ユーザーでログインした場合の処理
+                onClose();
+                router.push("/home");
+            } else {
+                // エラー処理
                 const data = await response.json();
                 setServerError(data.error || "サインアップに失敗しました。");
-            } else {
-                // サインアップ成功時の処理
-                onClose();          // EmailSignUpModal を閉じる
-                onComplete(email);  // 親コンポーネントにサインアップ完了を通知
             }
         } catch (error) {
             console.error("Error during signup:", error);
