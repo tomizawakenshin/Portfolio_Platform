@@ -3,6 +3,8 @@ package reposotories
 import (
 	"backend/models"
 	"errors"
+	"log"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -12,6 +14,8 @@ type IAuthRepository interface {
 	FindUser(email string) (*models.User, error)
 	FindUserByToken(token string) (*models.User, error)
 	UpdateUser(user *models.User) error
+	SoftDeleteUnverifiedUsersBefore(cutoffTime time.Time) error
+	PermanentlyDeleteUsersBefore(cutoffTime time.Time) error
 }
 
 type AuthRepository struct {
@@ -53,4 +57,24 @@ func (r *AuthRepository) FindUserByToken(token string) (*models.User, error) {
 
 func (r *AuthRepository) UpdateUser(user *models.User) error {
 	return r.db.Save(user).Error
+}
+
+// ソフトデリートを行うメソッドを追加
+func (r *AuthRepository) SoftDeleteUnverifiedUsersBefore(cutoffTime time.Time) error {
+	result := r.db.Where("is_verified = ? AND created_at < ?", false, cutoffTime).Delete(&models.User{})
+	if result.Error != nil {
+		return result.Error
+	}
+	log.Printf("Soft-deleted %d unverified users.", result.RowsAffected)
+	return nil
+}
+
+// ハードデリートを行うメソッドを追加
+func (r *AuthRepository) PermanentlyDeleteUsersBefore(cutoffTime time.Time) error {
+	result := r.db.Unscoped().Where("deleted_at IS NOT NULL AND deleted_at < ?", cutoffTime).Delete(&models.User{})
+	if result.Error != nil {
+		return result.Error
+	}
+	log.Printf("Permanently deleted %d users.", result.RowsAffected)
+	return nil
 }

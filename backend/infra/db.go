@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
@@ -37,5 +38,9 @@ func SetupDB() *gorm.DB {
 		panic("Failed to connect database")
 	}
 
+	// デフォルトのタイムスタンプを UTC に設定
+	db.Config.NowFunc = func() time.Time { // この点を変更
+		return time.Now().UTC()
+	}
 	return db
 }

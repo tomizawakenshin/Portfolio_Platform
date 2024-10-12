@@ -20,6 +20,8 @@ type IAuthService interface {
 	GetUserFromToken(tokenString string) (*models.User, error)
 	VerifyUser(token string) (*models.User, error)
 	CreateToken(userId uint, email string) (*string, error)
+	SoftDeleteUnverifiedUsers() error
+	PermanentlyDeleteUsers() error
 }
 
 type AuthService struct {
@@ -131,4 +133,16 @@ func (s *AuthService) GetUserFromToken(tokenString string) (*models.User, error)
 func (s *AuthService) Logout(ctx *gin.Context) error {
 	// 必要に応じてトークンのブラックリスト化などを実装
 	return nil
+}
+
+// ソフトデリートを行うメソッドを追加
+func (s *AuthService) SoftDeleteUnverifiedUsers() error {
+	cutoffTime := time.Now().UTC().Add(-168 * time.Hour) // 本登録の有効期間は7日間
+	return s.repository.SoftDeleteUnverifiedUsersBefore(cutoffTime)
+}
+
+// ハードデリートを行うメソッドを追加
+func (s *AuthService) PermanentlyDeleteUsers() error {
+	cutoffTime := time.Now().UTC().Add(-552 * time.Hour) // ソフトデリートされてからハードデリートされるまでは3週間
+	return s.repository.PermanentlyDeleteUsersBefore(cutoffTime)
 }

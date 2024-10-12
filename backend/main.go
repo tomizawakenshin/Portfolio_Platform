@@ -6,6 +6,7 @@ import (
 	"backend/middlewares"
 	reposotories "backend/repositories"
 	"backend/services"
+	"log"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -13,10 +14,10 @@ import (
 	"gorm.io/gorm"
 )
 
-func setupRouter(db *gorm.DB) *gin.Engine {
+func setupRouter(db *gorm.DB, authService services.IAuthService) *gin.Engine {
 
 	authRepository := reposotories.NewAuthRepository(db)
-	authService := services.NewAuthService(authRepository)
+	// authService := services.NewAuthService(authRepository)
 	emailService := services.NewEmailService()
 	authController := controllers.NewAuthController(authService, emailService)
 
@@ -52,10 +53,45 @@ func setupRouter(db *gorm.DB) *gin.Engine {
 
 }
 
+func startSoftDeleteJob(authService services.IAuthService) {
+	ticker := time.NewTicker(24 * time.Hour)
+	go func() {
+		for range ticker.C {
+			err := authService.SoftDeleteUnverifiedUsers()
+			if err != nil {
+				log.Printf("Error soft-deleting unverified users: %v", err)
+			} else {
+				log.Println("Soft-delete job executed successfully")
+			}
+		}
+	}()
+}
+
+func startPermanentDeletionJob(authService services.IAuthService) {
+	ticker := time.NewTicker(24 * time.Hour)
+	go func() {
+		for range ticker.C {
+			err := authService.PermanentlyDeleteUsers()
+			if err != nil {
+				log.Printf("Error permanently deleting users: %v", err)
+			} else {
+				log.Println("Permanent deletion job executed successfully")
+			}
+		}
+	}()
+}
+
 func main() {
 	infra.Initialize()
 	db := infra.SetupDB()
 
-	r := setupRouter(db)
+	authRepository := reposotories.NewAuthRepository(db)
+	authService := services.NewAuthService(authRepository)
+
+	// クリーンアップジョブの開始
+	startSoftDeleteJob(authService)
+	startPermanentDeletionJob(authService)
+
+	r := setupRouter(db, authService)
 	r.Run("localhost:8080") // 0.0.0.0:8080 でサーバーを立てます。
 }
