@@ -35,8 +35,8 @@ func (s *UserService) UpdateMinimumUserInfo(userID uint, input dto.MinimumUserIn
 	}
 
 	// ユーザー情報を更新
-	user.FirstName = &input.FirstName
-	user.LastName = &input.LastName
+	user.FirstName = input.FirstName
+	user.LastName = input.LastName
 
 	// ユーザーを保存
 	if err := s.authRepository.UpdateUser(user); err != nil {

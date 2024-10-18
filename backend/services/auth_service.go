@@ -162,8 +162,8 @@ func (s *AuthService) FindOrCreateUserByGoogle(userinfo *oauth2Google.Userinfo) 
 		// ユーザーが存在しない場合、新規作成
 		user = &models.User{
 			Email:      userinfo.Email,
-			FirstName:  &userinfo.GivenName,
-			LastName:   &userinfo.FamilyName,
+			FirstName:  "",
+			LastName:   "",
 			IsVerified: true,
 			// パスワードは空またはランダムな値を設定
 			Password: "",
