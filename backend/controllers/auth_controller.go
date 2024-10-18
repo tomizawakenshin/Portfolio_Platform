@@ -3,14 +3,19 @@ package controllers
 import (
 	"backend/dto"
 	"backend/services"
+	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"os"
 
 	// "fmt"
 	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
+	oauth2v2 "google.golang.org/api/oauth2/v2"
 )
 
 type IAuthController interface {
@@ -18,17 +23,29 @@ type IAuthController interface {
 	Login(ctx *gin.Context)
 	Logout(ctx *gin.Context)
 	VerifyAccount(ctx *gin.Context)
+	GoogleLogin(ctx *gin.Context)
+	GoogleCallback(ctx *gin.Context)
 }
 
 type AuthController struct {
-	services     services.IAuthService
-	emailService services.IEmailService
+	services          services.IAuthService
+	emailService      services.IEmailService
+	googleOauthConfig *oauth2.Config
 }
 
 func NewAuthController(service services.IAuthService, emailService services.IEmailService) IAuthController {
+	googleOauthConfig := &oauth2.Config{
+		RedirectURL:  "http://localhost:8080/auth/google/callback",
+		ClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
+		ClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
+		Scopes:       []string{"openid", "https://www.googleapis.com/auth/userinfo.email", "https://www.googleapis.com/auth/userinfo.profile"},
+		Endpoint:     google.Endpoint,
+	}
+
 	return &AuthController{
-		services:     service,
-		emailService: emailService,
+		services:          service,
+		emailService:      emailService,
+		googleOauthConfig: googleOauthConfig,
 	}
 }
 
@@ -141,4 +158,58 @@ func (c *AuthController) Logout(ctx *gin.Context) {
 	ctx.SetCookie("jwt-token", "", -1, "/", "localhost", false, true)
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "ログアウトしました。"})
+}
+
+func (c *AuthController) GoogleLogin(ctx *gin.Context) {
+	url := c.googleOauthConfig.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
+	ctx.Redirect(http.StatusTemporaryRedirect, url)
+}
+
+func (c *AuthController) GoogleCallback(ctx *gin.Context) {
+	state := ctx.Query("state")
+	if state != "state-token" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "State token does not match"})
+		return
+	}
+
+	code := ctx.Query("code")
+	token, err := c.googleOauthConfig.Exchange(context.Background(), code)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to exchange token"})
+		return
+	}
+
+	// ユーザー情報を取得
+	client := c.googleOauthConfig.Client(context.Background(), token)
+	oauth2Service, err := oauth2v2.New(client)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create oauth2 service"})
+		return
+	}
+
+	userinfo, err := oauth2Service.Userinfo.Get().Do()
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user info"})
+		return
+	}
+
+	// ユーザーをデータベースに作成または取得
+	user, err := c.services.FindOrCreateUserByGoogle(userinfo)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to find or create user"})
+		return
+	}
+
+	// JWTトークンを作成
+	jwtToken, err := c.services.CreateToken(user.ID, user.Email)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create JWT token"})
+		return
+	}
+
+	// クッキーにトークンを設定
+	ctx.SetCookie("jwt-token", *jwtToken, 3600*24, "/", "localhost", false, true)
+
+	// フロントエンドにリダイレクト
+	ctx.Redirect(http.StatusFound, "http://localhost:3000/home")
 }

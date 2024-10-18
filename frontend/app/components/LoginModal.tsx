@@ -65,6 +65,11 @@ const LoginModal: FC<ModalProps> = ({ isOpen, onClose, onSignUpClick }) => {
             });
     };
 
+    const handleGoogleLoginClick = () => {
+        // バックエンドのGoogleログインエンドポイントにリダイレクト
+        window.location.href = "http://localhost:8080/auth/google/login";
+    };
+
     return (
         <div
             className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50"
@@ -84,7 +89,8 @@ const LoginModal: FC<ModalProps> = ({ isOpen, onClose, onSignUpClick }) => {
                 {errors.general && (
                     <div className="text-red-500 mb-4">{errors.general}</div>
                 )}
-                <button className="w-full py-2 mb-4 border border-gray-300 rounded-md hover:bg-gray-200 font-bold">
+                <button className="w-full py-2 mb-4 border border-gray-300 rounded-md hover:bg-gray-200 font-bold"
+                    onClick={handleGoogleLoginClick}>
                     <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google Icon" className="inline-block mr-2" />
                     Googleでログイン
                 </button>

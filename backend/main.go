@@ -49,6 +49,10 @@ func setupRouter(db *gorm.DB, authService services.IAuthService) *gin.Engine {
 	userRouterWithAuth.GET("/GetInfo", userController.GetUserInfo)
 	userRouterWithAuth.PUT("/UpdateMinimumUserInfo", userController.UpdateMinimumUserInfo)
 
+	// Google OAuth 2.0のエンドポイントを追加
+	authRouter.GET("/google/login", authController.GoogleLogin)
+	authRouter.GET("/google/callback", authController.GoogleCallback)
+
 	return r
 
 }

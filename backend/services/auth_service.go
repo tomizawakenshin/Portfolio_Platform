@@ -11,6 +11,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
+
+	// "golang.org/x/oauth2"
+	// "golang.org/x/oauth2/google"
+	oauth2Google "google.golang.org/api/oauth2/v2"
 )
 
 type IAuthService interface {
@@ -22,6 +26,7 @@ type IAuthService interface {
 	CreateToken(userId uint, email string) (*string, error)
 	SoftDeleteUnverifiedUsers() error
 	PermanentlyDeleteUsers() error
+	FindOrCreateUserByGoogle(userinfo *oauth2Google.Userinfo) (*models.User, error)
 }
 
 type AuthService struct {
@@ -145,4 +150,28 @@ func (s *AuthService) SoftDeleteUnverifiedUsers() error {
 func (s *AuthService) PermanentlyDeleteUsers() error {
 	cutoffTime := time.Now().UTC().Add(-552 * time.Hour) // ソフトデリートされてからハードデリートされるまでは3週間
 	return s.repository.PermanentlyDeleteUsersBefore(cutoffTime)
+}
+
+func (s *AuthService) FindOrCreateUserByGoogle(userinfo *oauth2Google.Userinfo) (*models.User, error) {
+	// メールアドレスでユーザーを検索
+	user, err := s.repository.FindUser(userinfo.Email)
+	if err != nil {
+		if err.Error() != "user not found" {
+			return nil, err
+		}
+		// ユーザーが存在しない場合、新規作成
+		user = &models.User{
+			Email:      userinfo.Email,
+			FirstName:  &userinfo.GivenName,
+			LastName:   &userinfo.FamilyName,
+			IsVerified: true,
+			// パスワードは空またはランダムな値を設定
+			Password: "",
+		}
+		if err := s.repository.CreateUser(*user); err != nil {
+			return nil, err
+		}
+	}
+
+	return user, nil
 }

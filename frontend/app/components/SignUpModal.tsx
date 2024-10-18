@@ -1,4 +1,5 @@
 // components/SignUpModal.tsx
+import { useRouter } from "next/navigation";
 import { FC, useState } from "react";
 
 interface SignUpModalProps {
@@ -9,6 +10,7 @@ interface SignUpModalProps {
 }
 
 const SignUpModal: FC<SignUpModalProps> = ({ isOpen, onClose, onLoginClick, onEmailSignUpClick }) => {
+    const router = useRouter();
     const [isAgreed, setIsAgreed] = useState(false);
 
     if (!isOpen) return null;
@@ -19,6 +21,13 @@ const SignUpModal: FC<SignUpModalProps> = ({ isOpen, onClose, onLoginClick, onEm
 
     const handleModalContentClick = (e: React.MouseEvent<HTMLDivElement>) => {
         e.stopPropagation();
+    };
+
+    const handleGoogleSignUpClick = () => {
+        if (isAgreed) {
+            // バックエンドのGoogleログインエンドポイントにリダイレクト
+            window.location.href = "http://localhost:8080/auth/google/login";
+        }
     };
 
     return (
@@ -61,9 +70,9 @@ const SignUpModal: FC<SignUpModalProps> = ({ isOpen, onClose, onLoginClick, onEm
                     </label>
                 </div>
                 <button
-                    className={`w-full py-2 rounded-md flex items-center justify-center mb-4 ${isAgreed ? "bg-red-500 hover:bg-red-600" : "bg-gray-400 cursor-not-allowed"
-                        } text-white`}
+                    className={`w-full py-2 rounded-md flex items-center justify-center mb-4 ${isAgreed ? "bg-red-500 hover:bg-red-600" : "bg-gray-400 cursor-not-allowed"} text-white`}
                     disabled={!isAgreed}
+                    onClick={handleGoogleSignUpClick}
                 >
                     <span className="mr-2">G</span>Googleで登録
                 </button>
