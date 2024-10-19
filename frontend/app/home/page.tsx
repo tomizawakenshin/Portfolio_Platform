@@ -4,8 +4,11 @@ import React, { useEffect, useState } from 'react';
 import { User } from '../types/User';
 import MnimumUserInfoInputModal from '../components/MinimumUserInfoInput';
 import { useRouter } from 'next/navigation';
+import useAuthCheck from '../hooks/useAuthCheck';
 
 const HomePage = () => {
+    useAuthCheck(); // ログインチェック
+
     const router = useRouter();
     const [user, setUser] = useState<User | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);

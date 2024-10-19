@@ -6,13 +6,16 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"fmt"
 	"os"
+	"strings"
 
 	// "fmt"
 	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	oauth2v2 "google.golang.org/api/oauth2/v2"
@@ -25,6 +28,7 @@ type IAuthController interface {
 	VerifyAccount(ctx *gin.Context)
 	GoogleLogin(ctx *gin.Context)
 	GoogleCallback(ctx *gin.Context)
+	CheckAuth(ctx *gin.Context)
 }
 
 type AuthController struct {
@@ -63,14 +67,14 @@ func (c *AuthController) SignUp(ctx *gin.Context) {
 	if err != nil {
 		if err.Error() == "user already exists" {
 			// ユーザーが既に存在する場合はログイン処理に移行
-			jwtToken, err := c.services.Login(input.Email, input.Password)
+			jwtToken, tokenExpiry, err := c.services.Login(input.Email, input.Password, false)
 			if err != nil {
 				ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
 				return
 			}
 
 			// 【変更点①】既存ユーザーでログインした場合、ステータスコードを http.StatusOK（200）に設定
-			ctx.SetCookie("jwt-token", *jwtToken, 3600*24, "/", "localhost", false, true)
+			ctx.SetCookie("jwt-token", *jwtToken, int(tokenExpiry.Seconds()), "/", "localhost", false, true)
 			ctx.JSON(http.StatusOK, gin.H{
 				"message": "Logged in successfully",
 				"token":   jwtToken})
@@ -116,13 +120,13 @@ func (c *AuthController) VerifyAccount(ctx *gin.Context) {
 		return
 	}
 
-	jwtToken, err := c.services.CreateToken(user.ID, user.Email)
+	jwtToken, tokenExpiry, err := c.services.CreateToken(user.ID, user.Email, false)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create JWT token"})
 		return
 	}
 
-	ctx.SetCookie("jwt-token", *jwtToken, 3600*24, "/", "localhost", false, true)
+	ctx.SetCookie("jwt-token", *jwtToken, int(tokenExpiry.Seconds()), "/", "localhost", false, true)
 
 	ctx.Redirect(http.StatusFound, "http://localhost:3000/home")
 }
@@ -134,7 +138,7 @@ func (c *AuthController) Login(ctx *gin.Context) {
 		return
 	}
 
-	jwtToken, err := c.services.Login(input.Email, input.Password)
+	jwtToken, tokenExpiry, err := c.services.Login(input.Email, input.Password, input.RememberMe)
 	if err != nil {
 		if err.Error() == "user not found" {
 			ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
@@ -144,7 +148,7 @@ func (c *AuthController) Login(ctx *gin.Context) {
 		return
 	}
 
-	ctx.SetCookie("jwt-token", *jwtToken, 3600*24, "/", "localhost", false, true)
+	ctx.SetCookie("jwt-token", *jwtToken, int(tokenExpiry.Seconds()), "/", "localhost", false, true)
 }
 
 func (c *AuthController) Logout(ctx *gin.Context) {
@@ -161,12 +165,27 @@ func (c *AuthController) Logout(ctx *gin.Context) {
 }
 
 func (c *AuthController) GoogleLogin(ctx *gin.Context) {
-	url := c.googleOauthConfig.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
+	rememberMe := ctx.Query("rememberMe")
+	state := "state-token"
+
+	// rememberMeフラグをstateに含める
+	if rememberMe == "true" {
+		state += "|rememberMe"
+	}
+
+	url := c.googleOauthConfig.AuthCodeURL(state, oauth2.AccessTypeOffline)
 	ctx.Redirect(http.StatusTemporaryRedirect, url)
 }
 
 func (c *AuthController) GoogleCallback(ctx *gin.Context) {
 	state := ctx.Query("state")
+	rememberMe := false
+
+	if strings.Contains(state, "|rememberMe") {
+		rememberMe = true
+		state = strings.Replace(state, "|rememberMe", "", 1)
+	}
+
 	if state != "state-token" {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "State token does not match"})
 		return
@@ -201,15 +220,39 @@ func (c *AuthController) GoogleCallback(ctx *gin.Context) {
 	}
 
 	// JWTトークンを作成
-	jwtToken, err := c.services.CreateToken(user.ID, user.Email)
+	jwtToken, tokenExpiry, err := c.services.CreateToken(user.ID, user.Email, rememberMe)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create JWT token"})
 		return
 	}
 
 	// クッキーにトークンを設定
-	ctx.SetCookie("jwt-token", *jwtToken, 3600*24, "/", "localhost", false, true)
+	ctx.SetCookie("jwt-token", *jwtToken, int(tokenExpiry.Seconds()), "/", "localhost", false, true)
 
 	// フロントエンドにリダイレクト
 	ctx.Redirect(http.StatusFound, "http://localhost:3000/home")
+}
+
+func (c *AuthController) CheckAuth(ctx *gin.Context) {
+	tokenString, err := ctx.Cookie("jwt-token")
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	// トークンを検証
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		// トークンの署名方法を検証
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+		}
+		return []byte(os.Getenv("SECRET_KEY")), nil
+	})
+
+	if err != nil || !token.Valid {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Authorized"})
 }

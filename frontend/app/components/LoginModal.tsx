@@ -38,6 +38,9 @@ const LoginModal: FC<ModalProps> = ({ isOpen, onClose, onSignUpClick }) => {
         // エラーメッセージをクリア
         setErrors({});
 
+        // 「ログイン状態を保持」のチェック状態を取得
+        const isRememberMeChecked = (document.getElementById('rememberMeCheckbox') as HTMLInputElement)?.checked;
+
         // ログイン処理
         fetch('http://localhost:8080/auth/login', {
             method: 'POST',
@@ -45,7 +48,7 @@ const LoginModal: FC<ModalProps> = ({ isOpen, onClose, onSignUpClick }) => {
                 'Content-Type': 'application/json',
             },
             credentials: 'include', // クッキーを含める
-            body: JSON.stringify({ email, password }),
+            body: JSON.stringify({ email, password, rememberMe: isRememberMeChecked }),
         })
             .then(response => {
                 if (!response.ok) {
@@ -66,8 +69,10 @@ const LoginModal: FC<ModalProps> = ({ isOpen, onClose, onSignUpClick }) => {
     };
 
     const handleGoogleLoginClick = () => {
+        const isRememberMeChecked = (document.getElementById('rememberMeCheckbox') as HTMLInputElement)?.checked;
+
         // バックエンドのGoogleログインエンドポイントにリダイレクト
-        window.location.href = "http://localhost:8080/auth/google/login";
+        window.location.href = `http://localhost:8080/auth/google/login?rememberMe=${isRememberMeChecked}`;
     };
 
     return (
@@ -116,7 +121,7 @@ const LoginModal: FC<ModalProps> = ({ isOpen, onClose, onSignUpClick }) => {
                     <div className="text-red-500 mb-2 text-sm">{errors.password}</div>
                 )}
                 <label className="flex items-center mb-4">
-                    <input type="checkbox" className="form-checkbox" />
+                    <input type="checkbox" id="rememberMeCheckbox" className="form-checkbox" />
                     <span className="ml-2">ログイン状態を保持</span>
                 </label>
                 <button

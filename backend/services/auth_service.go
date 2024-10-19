@@ -19,11 +19,11 @@ import (
 
 type IAuthService interface {
 	SignUp(email string, password string, verificationToken string) error
-	Login(email string, password string) (*string, error)
+	Login(email string, password string, rememberMe bool) (*string, time.Duration, error)
 	Logout(ctx *gin.Context) error
 	GetUserFromToken(tokenString string) (*models.User, error)
 	VerifyUser(token string) (*models.User, error)
-	CreateToken(userId uint, email string) (*string, error)
+	CreateToken(userId uint, email string, rememberMe bool) (*string, time.Duration, error)
 	SoftDeleteUnverifiedUsers() error
 	PermanentlyDeleteUsers() error
 	FindOrCreateUserByGoogle(userinfo *oauth2Google.Userinfo) (*models.User, error)
@@ -77,40 +77,47 @@ func (s *AuthService) VerifyUser(token string) (*models.User, error) {
 	return user, nil
 }
 
-func (s *AuthService) Login(email string, password string) (*string, error) {
+func (s *AuthService) Login(email string, password string, rememberMe bool) (*string, time.Duration, error) {
 	foundUser, err := s.repository.FindUser(email)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(foundUser.Password), []byte(password))
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	jwtToken, err := s.CreateToken(foundUser.ID, foundUser.Email)
+	jwtToken, tokenExpiry, err := s.CreateToken(foundUser.ID, foundUser.Email, rememberMe)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	return jwtToken, nil
+	return jwtToken, tokenExpiry, nil
 }
+func (s *AuthService) CreateToken(userId uint, email string, rememberMe bool) (*string, time.Duration, error) {
+	var tokenExpiry time.Duration
+	if rememberMe {
+		//tokenExpiry = time.Hour * 24 * 30 // 30日間
+		tokenExpiry = time.Second * 60
+	} else {
+		//tokenExpiry = time.Hour * 1 // 1時間
+		tokenExpiry = time.Second * 30
+	}
 
-func (s *AuthService) CreateToken(userId uint, email string) (*string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"sub":   userId,
 		"email": email,
-		"exp":   time.Now().Add(time.Hour * 24).Unix(),
+		"exp":   time.Now().Add(tokenExpiry).Unix(),
 	})
 
 	tokenString, err := token.SignedString([]byte(os.Getenv("SECRET_KEY")))
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	return &tokenString, nil
+	return &tokenString, tokenExpiry, nil
 }
-
 func (s *AuthService) GetUserFromToken(tokenString string) (*models.User, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {

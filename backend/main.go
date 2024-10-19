@@ -35,23 +35,27 @@ func setupRouter(db *gorm.DB, authService services.IAuthService) *gin.Engine {
 		MaxAge:           48 * time.Hour,                                                                                   // プリフライトリクエストのキャッシュ時間
 	}))
 
-	//user認証関連のエンドポイント
+	//user認証のエンドポイント
 	authRouter := r.Group("/auth")
 	authRouter.POST("/signup", authController.SignUp)
 	authRouter.POST("/login", authController.Login)
 	authRouter.GET("/verify", authController.VerifyAccount)
 
+	// Google OAuth 2.0認証のエンドポイント
+	authRouter.GET("/google/login", authController.GoogleLogin)
+	authRouter.GET("/google/callback", authController.GoogleCallback)
+
+	//ログアウトのエンドポイント
 	authRouterWithAuth := r.Group("/auth", middlewares.AuthMiddleware(authService))
 	authRouterWithAuth.POST("/logout", authController.Logout)
+
+	//Cookieの存在の確認用のエンドポイント
+	authRouter.GET("/check", authController.CheckAuth)
 
 	//user情報関連のエンドポイント
 	userRouterWithAuth := r.Group("/user", middlewares.AuthMiddleware(authService))
 	userRouterWithAuth.GET("/GetInfo", userController.GetUserInfo)
 	userRouterWithAuth.PUT("/UpdateMinimumUserInfo", userController.UpdateMinimumUserInfo)
-
-	// Google OAuth 2.0のエンドポイントを追加
-	authRouter.GET("/google/login", authController.GoogleLogin)
-	authRouter.GET("/google/callback", authController.GoogleCallback)
 
 	return r
 
