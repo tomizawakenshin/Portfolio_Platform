@@ -6,11 +6,11 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
 
-	// "fmt"
 	"log"
 	"net/http"
 
@@ -19,6 +19,7 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	oauth2v2 "google.golang.org/api/oauth2/v2"
+	"gorm.io/gorm"
 )
 
 type IAuthController interface {
@@ -29,6 +30,9 @@ type IAuthController interface {
 	GoogleLogin(ctx *gin.Context)
 	GoogleCallback(ctx *gin.Context)
 	CheckAuth(ctx *gin.Context)
+	RequestPasswordReset(ctx *gin.Context)
+	ResetPassword(ctx *gin.Context)
+	CheckResetToken(ctx *gin.Context)
 }
 
 type AuthController struct {
@@ -116,7 +120,16 @@ func (c *AuthController) VerifyAccount(ctx *gin.Context) {
 
 	user, err := c.services.VerifyUser(token)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		switch err {
+		case services.ErrUserAlreadyVerified:
+			ctx.Redirect(http.StatusFound, "http://localhost:3000/auth")
+		case services.ErrVerificationTokenExpired:
+			ctx.Redirect(http.StatusFound, "http://localhost:3000/auth")
+		case services.ErrUserNotFound:
+			ctx.Redirect(http.StatusFound, "http://localhost:3000/auth")
+		default:
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
 		return
 	}
 
@@ -244,7 +257,7 @@ func (c *AuthController) CheckAuth(ctx *gin.Context) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		// トークンの署名方法を検証
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 		return []byte(os.Getenv("SECRET_KEY")), nil
 	})
@@ -255,4 +268,94 @@ func (c *AuthController) CheckAuth(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "Authorized"})
+}
+
+func (c *AuthController) RequestPasswordReset(ctx *gin.Context) {
+	var input dto.PasswordResetRequestInput
+	if err := ctx.ShouldBindJSON(&input); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	resetToken, err := c.services.GeneratePasswordResetToken(input.Email)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			// ユーザーが存在しない場合
+			ctx.JSON(http.StatusNotFound, gin.H{"error": "そのアカウントは無効です。"})
+		} else {
+			// その他のエラー
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "サーバーエラーが発生しました。"})
+		}
+		return
+	}
+
+	// パスワードリセットメールを送信
+	err = c.emailService.SendPasswordResetEmail(input.Email, resetToken)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "パスワードリセットメールの送信に失敗しました"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "メールアドレスにパスワードリセットのリンクを送信しました。"})
+}
+
+func (c *AuthController) ResetPassword(ctx *gin.Context) {
+	var input dto.PasswordResetInput
+	if err := ctx.ShouldBindJSON(&input); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "無効なリクエストです。"})
+		return
+	}
+
+	user, err := c.services.ValidatePasswordResetToken(input.Token)
+	if err != nil {
+		if err.Error() == "reset token has expired" {
+			ctx.JSON(http.StatusUnauthorized, gin.H{"error": "トークンの有効期限が切れています。"})
+		} else if err.Error() == "user not found" {
+			ctx.JSON(http.StatusNotFound, gin.H{"error": "無効なトークンです。"})
+		} else {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "サーバーエラーが発生しました。"})
+		}
+		return
+	}
+
+	err = c.services.UpdatePassword(user, input.NewPassword)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "パスワードの更新に失敗しました"})
+		return
+	}
+
+	// オプション：パスワードリセット後にユーザーをログインさせる
+	jwtToken, tokenExpiry, err := c.services.CreateToken(user.ID, user.Email, false)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "JWTトークンの作成に失敗しました"})
+		return
+	}
+
+	ctx.SetCookie("jwt-token", *jwtToken, int(tokenExpiry.Seconds()), "/", "localhost", false, true)
+	ctx.JSON(http.StatusOK, gin.H{"message": "パスワードがリセットされ、ログインしました。"})
+}
+
+func (c *AuthController) CheckResetToken(ctx *gin.Context) {
+	var input struct {
+		Token string `json:"token" binding:"required"`
+	}
+	if err := ctx.ShouldBindJSON(&input); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "トークンが必要です。"})
+		return
+	}
+
+	_, err := c.services.ValidatePasswordResetToken(input.Token)
+	if err != nil {
+		// エラーの種類に応じて適切なステータスコードを返す
+		if err.Error() == "reset token has expired" {
+			ctx.JSON(http.StatusUnauthorized, gin.H{"error": "トークンの有効期限が切れています。"})
+		} else if err.Error() == "user not found" {
+			ctx.JSON(http.StatusNotFound, gin.H{"error": "無効なトークンです。"})
+		} else {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "サーバーエラーが発生しました。"})
+		}
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "トークンは有効です。"})
 }

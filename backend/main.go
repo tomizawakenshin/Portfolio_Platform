@@ -52,6 +52,11 @@ func setupRouter(db *gorm.DB, authService services.IAuthService) *gin.Engine {
 	//Cookieの存在の確認用のエンドポイント
 	authRouter.GET("/check", authController.CheckAuth)
 
+	//パスワードリセットのエンドポイント
+	authRouter.POST("/RequestPasswordReset", authController.RequestPasswordReset)
+	authRouter.POST("/CheckResetToken", authController.CheckResetToken)
+	authRouter.POST("/ResetPassword", authController.ResetPassword)
+
 	//user情報関連のエンドポイント
 	userRouterWithAuth := r.Group("/user", middlewares.AuthMiddleware(authService))
 	userRouterWithAuth.GET("/GetInfo", userController.GetUserInfo)

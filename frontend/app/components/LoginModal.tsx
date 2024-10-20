@@ -6,13 +6,15 @@ interface ModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSignUpClick: () => void;
+    onForgotPasswordClick: () => void;
 }
 
-const LoginModal: FC<ModalProps> = ({ isOpen, onClose, onSignUpClick }) => {
+const LoginModal: FC<ModalProps> = ({ isOpen, onClose, onSignUpClick, onForgotPasswordClick }) => {
     const router = useRouter();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({});
+    const [isForgotPasswordModalOpen, setIsForgotPasswordModalOpen] = useState(false);
 
     if (!isOpen) return null;
 
@@ -21,10 +23,9 @@ const LoginModal: FC<ModalProps> = ({ isOpen, onClose, onSignUpClick }) => {
     };
 
     const handleModalContentClick = (e: React.MouseEvent<HTMLDivElement>) => {
-        e.stopPropagation(); // モーダル内のクリックは閉じないようにする
+        e.stopPropagation();
     };
 
-    // メールアドレスのバリデーション関数
     const validateEmail = (email: string) => {
         const re = /\S+@\S+\.\S+/;
         return re.test(email);
@@ -32,8 +33,6 @@ const LoginModal: FC<ModalProps> = ({ isOpen, onClose, onSignUpClick }) => {
 
     const handleLogin = () => {
         let validationErrors: { email?: string; password?: string } = {};
-
-        // ...バリデーション処理はそのまま...
 
         // エラーメッセージをクリア
         setErrors({});
@@ -58,7 +57,6 @@ const LoginModal: FC<ModalProps> = ({ isOpen, onClose, onSignUpClick }) => {
                         throw new Error('ログインに失敗しました');
                     });
                 } else {
-                    // レスポンスボディをパースせずに次の処理へ
                     onClose();
                     router.push("/home");
                 }
@@ -94,8 +92,10 @@ const LoginModal: FC<ModalProps> = ({ isOpen, onClose, onSignUpClick }) => {
                 {errors.general && (
                     <div className="text-red-500 mb-4">{errors.general}</div>
                 )}
-                <button className="w-full py-2 mb-4 border border-gray-300 rounded-md hover:bg-gray-200 font-bold"
-                    onClick={handleGoogleLoginClick}>
+                <button
+                    className="w-full py-2 mb-4 border border-gray-300 rounded-md hover:bg-gray-200 font-bold"
+                    onClick={handleGoogleLoginClick}
+                >
                     <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google Icon" className="inline-block mr-2" />
                     Googleでログイン
                 </button>
@@ -130,7 +130,12 @@ const LoginModal: FC<ModalProps> = ({ isOpen, onClose, onSignUpClick }) => {
                 >
                     ログイン
                 </button>
-                <div className="text-center mt-4 text-sm">
+                <div
+                    className="text-center mt-4 text-sm text-orange-500 hover:underline cursor-pointer"
+                    onClick={() => {
+                        onForgotPasswordClick();
+                    }}
+                >
                     パスワードをお忘れですか？
                 </div>
                 <div className="text-center mt-4 text-sm">

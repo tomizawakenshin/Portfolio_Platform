@@ -7,6 +7,7 @@ import (
 
 type IEmailService interface {
 	SendRegistrationEmail(to string, verificationLink string) error
+	SendPasswordResetEmail(to string, resetToken string) error
 }
 
 type EmailService struct{}
@@ -39,6 +40,39 @@ func (s *EmailService) SendRegistrationEmail(to string, verificationToken string
     </html>`, verificationToken)
 
 	// メールヘッダーと本文の組み立て
+	message := []byte("To: " + to + "\r\n" +
+		"Subject: " + subject + "\r\n" +
+		"MIME-version: 1.0;\r\n" +
+		"Content-Type: text/html; charset=\"UTF-8\";\r\n" +
+		"\r\n" + body + "\r\n")
+
+	// メール送信
+	return smtp.SendMail(smtpHost+":"+smtpPort, nil, from, []string{to}, message)
+}
+
+func (s *EmailService) SendPasswordResetEmail(to string, resetToken string) error {
+	from := "info@login-go.app"
+	smtpHost := "localhost"
+	smtpPort := "1025"
+
+	subject := "パスワードリセットのご案内"
+	// リセットリンクを構築
+	resetLink := fmt.Sprintf("http://localhost:3000/PasswordReset/%s", resetToken)
+
+	body := fmt.Sprintf(`
+    <html>
+    <body>
+        <div style="font-family: Arial, sans-serif; color: #333;">
+            <h2>パスワードリセット</h2>
+            <p>パスワードリセットのリクエストを受け付けました。</p>
+            <p>以下のリンクをクリックしてパスワードをリセットしてください：</p>
+            <a href="%s" style="padding: 10px 20px; background-color: #F15A24; color: #fff; text-decoration: none; border-radius: 5px;">パスワードをリセットする</a>
+            <p>このリンクの有効期限は1時間です。</p>
+        </div>
+    </body>
+    </html>`, resetLink)
+
+	// メールヘッダーとメッセージ
 	message := []byte("To: " + to + "\r\n" +
 		"Subject: " + subject + "\r\n" +
 		"MIME-version: 1.0;\r\n" +

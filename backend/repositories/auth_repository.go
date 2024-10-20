@@ -1,8 +1,9 @@
-package reposotories
+package repositories
 
 import (
 	"backend/models"
 	"errors"
+	"fmt"
 	"log"
 	"time"
 
@@ -11,11 +12,12 @@ import (
 
 type IAuthRepository interface {
 	CreateUser(user models.User) error
-	FindUser(email string) (*models.User, error)
-	FindUserByToken(token string) (*models.User, error)
+	FindUserByEmail(email string) (*models.User, error)
+	FindUserByVerificationToken(token string) (*models.User, error)
 	UpdateUser(user *models.User) error
 	SoftDeleteUnverifiedUsersBefore(cutoffTime time.Time) error
 	PermanentlyDeleteUsersBefore(cutoffTime time.Time) error
+	FindUserByPasswordResetToken(token string) (*models.User, error)
 }
 
 type AuthRepository struct {
@@ -26,6 +28,12 @@ func NewAuthRepository(db *gorm.DB) IAuthRepository {
 	return &AuthRepository{db: db}
 }
 
+const (
+	fieldEmail              = "email"
+	fieldVerificationToken  = "verification_token"
+	fieldPasswordResetToken = "password_reset_token"
+)
+
 func (r *AuthRepository) CreateUser(user models.User) error {
 	result := r.db.Create(&user)
 	if result.Error != nil {
@@ -34,29 +42,28 @@ func (r *AuthRepository) CreateUser(user models.User) error {
 	return nil
 }
 
-func (r *AuthRepository) FindUser(email string) (*models.User, error) {
-	var user models.User
-	result := r.db.Where("email = ?", email).First(&user)
-	if result.Error != nil {
-		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return nil, errors.New("user not found")
-		}
-		return nil, result.Error
-	}
-	return &user, nil
+func (r *AuthRepository) FindUserByEmail(email string) (*models.User, error) {
+	return r.findUserByField(fieldEmail, email)
 }
 
-func (r *AuthRepository) FindUserByToken(token string) (*models.User, error) {
-	var user models.User
-	result := r.db.Where("verification_token = ?", token).First(&user)
-	if result.Error != nil {
-		return nil, result.Error
-	}
-	return &user, nil
+func (r *AuthRepository) FindUserByVerificationToken(token string) (*models.User, error) {
+	return r.findUserByField(fieldVerificationToken, token)
 }
 
 func (r *AuthRepository) UpdateUser(user *models.User) error {
 	return r.db.Save(user).Error
+}
+
+func (r *AuthRepository) findUserByField(fieldName string, value interface{}) (*models.User, error) {
+	var user models.User
+	result := r.db.Where(fmt.Sprintf("%s = ?", fieldName), value).First(&user)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, gorm.ErrRecordNotFound
+		}
+		return nil, result.Error
+	}
+	return &user, nil
 }
 
 // ソフトデリートを行うメソッドを追加
@@ -77,4 +84,8 @@ func (r *AuthRepository) PermanentlyDeleteUsersBefore(cutoffTime time.Time) erro
 	}
 	log.Printf("Permanently deleted %d users.", result.RowsAffected)
 	return nil
+}
+
+func (r *AuthRepository) FindUserByPasswordResetToken(token string) (*models.User, error) {
+	return r.findUserByField(fieldPasswordResetToken, token)
 }

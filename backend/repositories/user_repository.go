@@ -1,4 +1,4 @@
-package reposotories
+package repositories
 
 import (
 	"backend/models"

@@ -3,7 +3,7 @@ package services
 import (
 	"backend/dto"
 	"backend/models"
-	reposotories "backend/repositories"
+	"backend/repositories"
 )
 
 type IUserService interface {
@@ -12,11 +12,11 @@ type IUserService interface {
 }
 
 type UserService struct {
-	repository     reposotories.IUserRepository
-	authRepository reposotories.IAuthRepository
+	repository     repositories.IUserRepository
+	authRepository repositories.IAuthRepository
 }
 
-func NewUserService(repository reposotories.IUserRepository, authRepository reposotories.IAuthRepository) IUserService {
+func NewUserService(repository repositories.IUserRepository, authRepository repositories.IAuthRepository) IUserService {
 	return &UserService{
 		repository:     repository,
 		authRepository: authRepository,

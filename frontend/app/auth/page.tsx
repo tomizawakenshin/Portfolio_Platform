@@ -7,6 +7,7 @@ import SignUpModal from "../components/SignUpModal";
 import LoginModal from "../components/LoginModal";
 import EmailSignUpModal from "../components/EmailSignUpModal";
 import SignUpCompleteModal from "../components/SignUpCompleteModal";
+import ForgotPasswordModal from "../components/ForgotPasswordModal";
 
 export default function Home() {
   const [isModalOpen, setIsModalOpen] = useState(false);       // サインアップモーダル
@@ -14,6 +15,7 @@ export default function Home() {
   const [isEmailSignUpModalOpen, setIsEmailSignUpModalOpen] = useState(false); // 新しいメールサインアップモーダル
   const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
   const [userEmail, setUserEmail] = useState("");
+  const [isForgotPasswordModalOpen, setIsForgotPasswordModalOpen] = useState(false);
 
   const openSignUpModal = () => {
     setIsModalOpen(true);
@@ -60,6 +62,17 @@ export default function Home() {
     setIsCompleteModalOpen(false);
   };
 
+  // ForgotPasswordModalを開く関数を定義
+  const openForgotPasswordModal = () => {
+    setIsLoginModalOpen(false); // LoginModalを閉じる
+    setIsForgotPasswordModalOpen(true); // ForgotPasswordModalを開く
+  };
+
+  // ForgotPasswordModalを閉じる関数を定義
+  const closeForgotPasswordModal = () => {
+    setIsForgotPasswordModalOpen(false);
+  };
+
   return (
     <div className="font-sans">
       {/* Header */}
@@ -84,6 +97,7 @@ export default function Home() {
         isOpen={isLoginModalOpen}
         onClose={closeLoginModal}
         onSignUpClick={handleSwitchToSignUp}
+        onForgotPasswordClick={openForgotPasswordModal}
       />
 
       <EmailSignUpModal
@@ -96,6 +110,11 @@ export default function Home() {
         isOpen={isCompleteModalOpen}
         onClose={closeCompleteModal}
         email={userEmail}
+      />
+
+      <ForgotPasswordModal
+        isOpen={isForgotPasswordModalOpen}
+        onClose={closeForgotPasswordModal}
       />
     </div>
   );
