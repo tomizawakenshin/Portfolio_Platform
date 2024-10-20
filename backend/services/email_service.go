@@ -8,6 +8,8 @@ import (
 type IEmailService interface {
 	SendRegistrationEmail(to string, verificationLink string) error
 	SendPasswordResetEmail(to string, resetToken string) error
+	SendWelcomeEmail(to string) error
+	SendPasswordResetConfirmationEmail(to string) error
 }
 
 type EmailService struct{}
@@ -73,6 +75,71 @@ func (s *EmailService) SendPasswordResetEmail(to string, resetToken string) erro
     </html>`, resetLink)
 
 	// メールヘッダーとメッセージ
+	message := []byte("To: " + to + "\r\n" +
+		"Subject: " + subject + "\r\n" +
+		"MIME-version: 1.0;\r\n" +
+		"Content-Type: text/html; charset=\"UTF-8\";\r\n" +
+		"\r\n" + body + "\r\n")
+
+	// メール送信
+	return smtp.SendMail(smtpHost+":"+smtpPort, nil, from, []string{to}, message)
+}
+
+func (s *EmailService) SendWelcomeEmail(to string) error {
+	from := "info@login-go.app"
+	smtpHost := "localhost"
+	smtpPort := "1025"
+
+	subject := "ReDesigner for Student へようこそ！"
+
+	body := `
+    <html>
+    <body>
+        <div style="font-family: Arial, sans-serif; color: #333;">
+            <h2>ReDesigner for Student へようこそ！</h2>
+            <p>この度はご登録ありがとうございます！ReDesigner for Studentは「デザイナーを目指す、すべての学生のためのプラットフォーム」です。</p>
+            <p>デザイナーを大切にしている企業のインターンや本採用の情報を集めたり、他大学の学生ポートフォリオを見たりと、デザインを学ぶことから本格的な就職活動をすることまで、さまざまなシーンでご利用いただけます！</p>
+            <p>プロフィールや作品をアップすることによって、企業の人たちがあなたを見つけることができるようになります。ぜひあなたのことを、あなたの作品や言葉で教えてくださいね。</p>
+            <p>作品をきっかけにあなたと企業がつながり、そこから得たフィードバックがあなたを支える。そんな出会いをお届けできたら、私たちも嬉しいです。</p>
+        </div>
+    </body>
+    </html>
+    `
+
+	// メールヘッダーと本文の組み立て
+	message := []byte("To: " + to + "\r\n" +
+		"Subject: " + subject + "\r\n" +
+		"MIME-version: 1.0;\r\n" +
+		"Content-Type: text/html; charset=\"UTF-8\";\r\n" +
+		"\r\n" + body + "\r\n")
+
+	// メール送信
+	return smtp.SendMail(smtpHost+":"+smtpPort, nil, from, []string{to}, message)
+}
+
+func (s *EmailService) SendPasswordResetConfirmationEmail(to string) error {
+	from := "info@login-go.app"
+	smtpHost := "localhost"
+	smtpPort := "1025"
+
+	subject := "パスワード変更完了のお知らせ"
+
+	body := fmt.Sprintf(`
+    <html>
+    <body>
+        <div style="font-family: Arial, sans-serif; color: #333;">
+            <p>こんにちは、%s さん</p>
+            <p>パスワード変更が完了しました。</p>
+            <p>変更したパスワードはセキュリティの関係上、記載しておりません。<br>
+            ログインIDやパスワードはサービス利用にあたり重要な情報のため、<br>
+            ご自身で大切に保管していただきますようお願い致します。</p>
+            <hr>
+        </div>
+    </body>
+    </html>
+    `, to)
+
+	// メールヘッダーと本文の組み立て
 	message := []byte("To: " + to + "\r\n" +
 		"Subject: " + subject + "\r\n" +
 		"MIME-version: 1.0;\r\n" +

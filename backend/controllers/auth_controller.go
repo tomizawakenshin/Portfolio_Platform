@@ -133,6 +133,11 @@ func (c *AuthController) VerifyAccount(ctx *gin.Context) {
 		return
 	}
 
+	if err := c.emailService.SendWelcomeEmail(user.Email); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send welcome email"})
+		return
+	}
+
 	jwtToken, tokenExpiry, err := c.services.CreateToken(user.ID, user.Email, false)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create JWT token"})
@@ -232,6 +237,11 @@ func (c *AuthController) GoogleCallback(ctx *gin.Context) {
 		return
 	}
 
+	if err := c.emailService.SendWelcomeEmail(user.Email); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send welcome email"})
+		return
+	}
+
 	// JWTトークンを作成
 	jwtToken, tokenExpiry, err := c.services.CreateToken(user.ID, user.Email, rememberMe)
 	if err != nil {
@@ -321,6 +331,12 @@ func (c *AuthController) ResetPassword(ctx *gin.Context) {
 	err = c.services.UpdatePassword(user, input.NewPassword)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "パスワードの更新に失敗しました"})
+		return
+	}
+
+	// パスワードリセット完了メールを送信
+	if err := c.emailService.SendPasswordResetConfirmationEmail(user.Email); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "パスワードリセット完了メールの送信に失敗しました"})
 		return
 	}
 
