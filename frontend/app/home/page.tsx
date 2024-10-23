@@ -1,3 +1,5 @@
+// home/page.tsx
+
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -5,13 +7,15 @@ import { User } from '../types/User';
 import MnimumUserInfoInputModal from '../components/MinimumUserInfoInput';
 import { useRouter } from 'next/navigation';
 import useAuthCheck from '../hooks/useAuthCheck';
+import WelcomeModal from '../components/WelcomeModal';
 
 const HomePage = () => {
     useAuthCheck(); // ログインチェック
 
     const router = useRouter();
     const [user, setUser] = useState<User | null>(null);
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState(false);
+    const [isMinimumUserInputModalOpen, setIsMinimumUserInputModalOpen] = useState(false);
 
     useEffect(() => {
         fetch('http://localhost:8080/user/GetInfo', {
@@ -26,7 +30,8 @@ const HomePage = () => {
             .then(data => {
                 setUser(data.user);
                 if (!data.user.FirstName) {
-                    setIsModalOpen(true); // FirstNameがnullならモーダルを開く
+                    // FirstNameがない場合は WelcomeModal を表示
+                    setIsWelcomeModalOpen(true);
                 }
             })
             .catch(error => {
@@ -34,30 +39,71 @@ const HomePage = () => {
             });
     }, []);
 
-    const handleModalClose = () => {
-        setIsModalOpen(false);
+    const handleWelcomeModalStart = () => {
+        setIsWelcomeModalOpen(false);
+        setIsMinimumUserInputModalOpen(true);
     };
 
-    const handleUserInfoSubmit = (firstName: string, lastName: string) => {
-        // ここでAPIを呼び出してFirstNameとLastNameを設定します。
+    const handleMinimumUserInputModalClose = () => {
+        setIsMinimumUserInputModalOpen(false);
+    };
+
+    const handleUserInfoSubmit = (
+        firstName: string,
+        lastName: string,
+        firstNameKana: string,
+        lastNameKana: string,
+        schoolName: string,
+        department: string,
+        laboratory: string,
+        graduationYear: string,
+        desiredJobTypes: string[],
+        skills: string[] // スキルも追加
+    ) => {
+        // APIを呼び出してユーザー情報を更新
         fetch('http://localhost:8080/user/UpdateMinimumUserInfo', {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
             },
             credentials: 'include', // クッキーを含める
-            body: JSON.stringify({ firstName, lastName }),
+            body: JSON.stringify({
+                firstName,
+                lastName,
+                firstNameKana,
+                lastNameKana,
+                schoolName,
+                department,
+                laboratory,
+                graduationYear,
+                desiredJobTypes,
+                skills,
+            }),
         })
             .then(response => {
                 if (!response.ok) {
-                    throw new Error('Network response was not ok');
+                    return response.json().then((data) => {
+                        throw new Error(data.error || 'Network response was not ok');
+                    });
                 }
                 return response.json();
             })
             .then(data => {
                 // ユーザー情報を更新
-                setUser({ ...user, FirstName: firstName, LastName: lastName } as User);
-                setIsModalOpen(false);
+                setUser({
+                    ...user,
+                    FirstName: firstName,
+                    LastName: lastName,
+                    FirstNameKana: firstNameKana,
+                    LastNameKana: lastNameKana,
+                    SchoolName: schoolName,
+                    Department: department,
+                    Laboratory: laboratory,
+                    GraduationYear: graduationYear,
+                    DesiredJobTypes: desiredJobTypes,
+                    Skills: skills,
+                } as User);
+                setIsMinimumUserInputModalOpen(false);
             })
             .catch(error => {
                 console.error('Error updating user info:', error);
@@ -94,10 +140,17 @@ const HomePage = () => {
             {/* ログアウトボタンを追加 */}
             <button onClick={handleLogout}>ログアウト</button>
 
-            {/* モーダルを表示 */}
+            {/* WelcomeModalを表示 */}
+            <WelcomeModal
+                isOpen={isWelcomeModalOpen}
+                onClose={() => setIsWelcomeModalOpen(false)}
+                onStart={handleWelcomeModalStart}
+            />
+
+            {/* MinimumUserInputModalを表示 */}
             <MnimumUserInfoInputModal
-                isOpen={isModalOpen}
-                onClose={handleModalClose}
+                isOpen={isMinimumUserInputModalOpen}
+                onClose={handleMinimumUserInputModalClose}
                 onSubmit={handleUserInfoSubmit}
             />
         </div>
