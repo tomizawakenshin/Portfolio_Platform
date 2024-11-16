@@ -1,3 +1,5 @@
+// main.go
+
 package main
 
 import (
@@ -30,6 +32,11 @@ func setupRouter(db *gorm.DB, authService services.IAuthService) *gin.Engine {
 	skillService := services.NewSkillService(skillRepository)
 	optionsController := controllers.NewOptionsController(jobTypeService, skillService)
 
+	// ** 追加部分: 投稿関連のリポジトリ、サービス、コントローラの初期化 **
+	portfolioRepository := repositories.NewPortfolioRepository(db)
+	portfolioService := services.NewPortfolioService(portfolioRepository)
+	portfolioController := controllers.NewPortfolioController(portfolioService)
+
 	r := gin.Default()
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:3000", "https://your-frontend.vercel.app", "http://localhost:8025/#"}, // フロントエンドのドメインを許可
@@ -39,8 +46,9 @@ func setupRouter(db *gorm.DB, authService services.IAuthService) *gin.Engine {
 		AllowCredentials: true,                                                                                             // 認証情報（クッキーなど）の送信を許可
 		MaxAge:           48 * time.Hour,                                                                                   // プリフライトリクエストのキャッシュ時間
 	}))
+	r.Static("/uploads", "./uploads")
 
-	//user認証のエンドポイント
+	// user認証のエンドポイント
 	authRouter := r.Group("/auth")
 	authRouter.POST("/signup", authController.SignUp)
 	authRouter.POST("/login", authController.Login)
@@ -50,19 +58,19 @@ func setupRouter(db *gorm.DB, authService services.IAuthService) *gin.Engine {
 	authRouter.GET("/google/login", authController.GoogleLogin)
 	authRouter.GET("/google/callback", authController.GoogleCallback)
 
-	//ログアウトのエンドポイント
+	// ログアウトのエンドポイント
 	authRouterWithAuth := r.Group("/auth", middlewares.AuthMiddleware(authService))
 	authRouterWithAuth.POST("/logout", authController.Logout)
 
-	//Cookieの存在の確認用のエンドポイント
+	// Cookieの存在の確認用のエンドポイント
 	authRouter.GET("/check", authController.CheckAuth)
 
-	//パスワードリセットのエンドポイント
+	// パスワードリセットのエンドポイント
 	authRouter.POST("/RequestPasswordReset", authController.RequestPasswordReset)
 	authRouter.POST("/CheckResetToken", authController.CheckResetToken)
 	authRouter.POST("/ResetPassword", authController.ResetPassword)
 
-	//user情報関連のエンドポイント
+	// user情報関連のエンドポイント
 	userRouterWithAuth := r.Group("/user", middlewares.AuthMiddleware(authService))
 	userRouterWithAuth.GET("/GetInfo", userController.GetUserInfo)
 	userRouterWithAuth.PUT("/UpdateMinimumUserInfo", userController.UpdateMinimumUserInfo)
@@ -72,8 +80,15 @@ func setupRouter(db *gorm.DB, authService services.IAuthService) *gin.Engine {
 	optionRouterWithAuth.GET("/job-types", optionsController.GetJobTypes)
 	optionRouterWithAuth.GET("/skills", optionsController.GetSkills)
 
-	return r
+	// ** 追加部分: 投稿関連のエンドポイント **
+	portfolioRouterWithAuth := r.Group("/Portfolio", middlewares.AuthMiddleware(authService))
+	// portfolioRouterWithAuth := r.Group("/Portfolio")
+	portfolioRouterWithAuth.POST("/posts", portfolioController.CreatePost)
+	// postRouterWithAuth.GET("/:id", postController.GetPostByID)
+	portfolioRouterWithAuth.GET("/user", portfolioController.GetPostsByUserID)
+	portfolioRouterWithAuth.GET("/getAllPosts", portfolioController.GetAllPosts)
 
+	return r
 }
 
 func startSoftDeleteJob(authService services.IAuthService) {
