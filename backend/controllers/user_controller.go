@@ -1,3 +1,5 @@
+// controllers/user_controller.go
+
 package controllers
 
 import (
@@ -42,7 +44,6 @@ func (c *UserController) GetUserInfo(ctx *gin.Context) {
 	// ユーザー情報を返す
 	ctx.JSON(http.StatusOK, gin.H{
 		"user": user,
-		// 必要に応じて他の情報も追加できます
 	})
 }
 
@@ -58,7 +59,7 @@ func (c *UserController) UpdateMinimumUserInfo(ctx *gin.Context) {
 	// リクエストボディをバインド
 	var input dto.MinimumUserInfoInput
 	if err := ctx.ShouldBindJSON(&input); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input", "details": err.Error()})
 		return
 	}
 

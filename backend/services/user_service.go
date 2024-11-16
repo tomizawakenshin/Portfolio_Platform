@@ -1,3 +1,5 @@
+// services/user_service.go
+
 package services
 
 import (
@@ -37,9 +39,17 @@ func (s *UserService) UpdateMinimumUserInfo(userID uint, input dto.MinimumUserIn
 	// ユーザー情報を更新
 	user.FirstName = input.FirstName
 	user.LastName = input.LastName
+	user.FirstNameKana = input.FirstNameKana
+	user.LastNameKana = input.LastNameKana
+	user.SchoolName = input.SchoolName
+	user.Department = input.Department
+	user.Laboratory = input.Laboratory
+	user.GraduationYear = input.GraduationYear
+	user.DesiredJobTypes = input.DesiredJobTypes
+	user.Skills = input.Skills
 
 	// ユーザーを保存
-	if err := s.authRepository.UpdateUser(user); err != nil {
+	if err := s.repository.UpdateUser(user); err != nil {
 		return err
 	}
 

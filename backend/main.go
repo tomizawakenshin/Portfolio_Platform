@@ -1,10 +1,12 @@
+// main.go
+
 package main
 
 import (
 	"backend/controllers"
 	"backend/infra"
 	"backend/middlewares"
-	reposotories "backend/repositories"
+	"backend/repositories"
 	"backend/services"
 	"log"
 	"time"
@@ -16,14 +18,24 @@ import (
 
 func setupRouter(db *gorm.DB, authService services.IAuthService) *gin.Engine {
 
-	authRepository := reposotories.NewAuthRepository(db)
-	// authService := services.NewAuthService(authRepository)
+	authRepository := repositories.NewAuthRepository(db)
 	emailService := services.NewEmailService()
 	authController := controllers.NewAuthController(authService, emailService)
 
-	userRepository := reposotories.NewUserRepository(db)
+	userRepository := repositories.NewUserRepository(db)
 	userService := services.NewUserService(userRepository, authRepository)
 	userController := controllers.NewUserController(userService)
+
+	jobTypeRepository := repositories.NewJobTypeRepository(db)
+	skillRepository := repositories.NewSkillRepository(db)
+	jobTypeService := services.NewJobTypeService(jobTypeRepository)
+	skillService := services.NewSkillService(skillRepository)
+	optionsController := controllers.NewOptionsController(jobTypeService, skillService)
+
+	// ** 追加部分: 投稿関連のリポジトリ、サービス、コントローラの初期化 **
+	portfolioRepository := repositories.NewPortfolioRepository(db)
+	portfolioService := services.NewPortfolioService(portfolioRepository)
+	portfolioController := controllers.NewPortfolioController(portfolioService)
 
 	r := gin.Default()
 	r.Use(cors.New(cors.Config{
@@ -34,8 +46,9 @@ func setupRouter(db *gorm.DB, authService services.IAuthService) *gin.Engine {
 		AllowCredentials: true,                                                                                             // 認証情報（クッキーなど）の送信を許可
 		MaxAge:           48 * time.Hour,                                                                                   // プリフライトリクエストのキャッシュ時間
 	}))
+	r.Static("/uploads", "./uploads")
 
-	//user認証のエンドポイント
+	// user認証のエンドポイント
 	authRouter := r.Group("/auth")
 	authRouter.POST("/signup", authController.SignUp)
 	authRouter.POST("/login", authController.Login)
@@ -45,25 +58,37 @@ func setupRouter(db *gorm.DB, authService services.IAuthService) *gin.Engine {
 	authRouter.GET("/google/login", authController.GoogleLogin)
 	authRouter.GET("/google/callback", authController.GoogleCallback)
 
-	//ログアウトのエンドポイント
+	// ログアウトのエンドポイント
 	authRouterWithAuth := r.Group("/auth", middlewares.AuthMiddleware(authService))
 	authRouterWithAuth.POST("/logout", authController.Logout)
 
-	//Cookieの存在の確認用のエンドポイント
+	// Cookieの存在の確認用のエンドポイント
 	authRouter.GET("/check", authController.CheckAuth)
 
-	//パスワードリセットのエンドポイント
+	// パスワードリセットのエンドポイント
 	authRouter.POST("/RequestPasswordReset", authController.RequestPasswordReset)
 	authRouter.POST("/CheckResetToken", authController.CheckResetToken)
 	authRouter.POST("/ResetPassword", authController.ResetPassword)
 
-	//user情報関連のエンドポイント
+	// user情報関連のエンドポイント
 	userRouterWithAuth := r.Group("/user", middlewares.AuthMiddleware(authService))
 	userRouterWithAuth.GET("/GetInfo", userController.GetUserInfo)
 	userRouterWithAuth.PUT("/UpdateMinimumUserInfo", userController.UpdateMinimumUserInfo)
 
-	return r
+	// オプション情報取得のエンドポイント
+	optionRouterWithAuth := r.Group("/options", middlewares.AuthMiddleware(authService))
+	optionRouterWithAuth.GET("/job-types", optionsController.GetJobTypes)
+	optionRouterWithAuth.GET("/skills", optionsController.GetSkills)
 
+	// ** 追加部分: 投稿関連のエンドポイント **
+	portfolioRouterWithAuth := r.Group("/Portfolio", middlewares.AuthMiddleware(authService))
+	// portfolioRouterWithAuth := r.Group("/Portfolio")
+	portfolioRouterWithAuth.POST("/posts", portfolioController.CreatePost)
+	// postRouterWithAuth.GET("/:id", postController.GetPostByID)
+	portfolioRouterWithAuth.GET("/user", portfolioController.GetPostsByUserID)
+	portfolioRouterWithAuth.GET("/getAllPosts", portfolioController.GetAllPosts)
+
+	return r
 }
 
 func startSoftDeleteJob(authService services.IAuthService) {
@@ -98,7 +123,7 @@ func main() {
 	infra.Initialize()
 	db := infra.SetupDB()
 
-	authRepository := reposotories.NewAuthRepository(db)
+	authRepository := repositories.NewAuthRepository(db)
 	authService := services.NewAuthService(authRepository)
 
 	// クリーンアップジョブの開始
