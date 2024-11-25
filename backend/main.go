@@ -131,5 +131,5 @@ func main() {
 	startPermanentDeletionJob(authService)
 
 	r := setupRouter(db, authService)
-	r.Run("localhost:8080") // 0.0.0.0:8080 でサーバーを立てます。
+	r.Run("0.0.0.0:8080") // 0.0.0.0:8080 でサーバーを立てます。
 }
