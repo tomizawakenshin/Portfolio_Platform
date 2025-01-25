@@ -11,6 +11,7 @@ type Post struct {
 	gorm.Model
 	Title       string         `gorm:"not null"`
 	Description string         `gorm:"type:text"`
+	Genres      pq.StringArray `gorm:"type:text[]"`
 	Skills      pq.StringArray `gorm:"type:text[]"`
 	Images      []Image        `gorm:"foreignKey:PostID"`
 	UserID      uint           `gorm:"not null"`
