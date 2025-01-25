@@ -12,8 +12,6 @@ export interface Portfolio {
     ID: number;
     Title: string;
     Description: string;
-    GitHubLink: string;
-    ProductLink: string;
     Skills: string[];
     Images: Image[];
     UserID: number;

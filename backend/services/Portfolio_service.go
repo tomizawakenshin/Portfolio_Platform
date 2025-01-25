@@ -31,8 +31,6 @@ func (s *PortfolioService) CreatePost(ctx *gin.Context, userID uint) error {
 	// テキストフィールドを取得
 	title := ctx.PostForm("title")
 	description := ctx.PostForm("description")
-	githubLink := ctx.PostForm("githubLink")
-	productLink := ctx.PostForm("productLink")
 
 	// スキルとジャンルを取得（JSON文字列をパースする必要があるかもしれません）
 	skills := ctx.PostFormArray("skills")
@@ -61,8 +59,6 @@ func (s *PortfolioService) CreatePost(ctx *gin.Context, userID uint) error {
 	post := models.Post{
 		Title:       title,
 		Description: description,
-		GitHubLink:  githubLink,
-		ProductLink: productLink,
 		Skills:      skills,
 		UserID:      userID,
 		Images:      images,

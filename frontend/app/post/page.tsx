@@ -8,18 +8,14 @@ const PostPage = () => {
     const [description, setDescription] = useState('');
     const [isPublic, setIsPublic] = useState(false);
 
-    // GitHubリンクとプロダクトリンクのステートを追加
-    const [githubLink, setGithubLink] = useState('');
-    const [productLink, setProductLink] = useState('');
-
     // スキル関連のステートとリファレンス
     const [skills, setSkills] = useState<string[]>([]); // 選択されたスキル
-    const [skillInput, setSkillInput] = useState(''); // スキルの入力値
+    const [skillInput, setSkillInput] = useState('');  // スキルの入力値
     const [suggestedSkills, setSuggestedSkills] = useState<string[]>([]); // スキルの候補
     const [availableSkills, setAvailableSkills] = useState<string[]>([]); // 全てのスキル
     const skillContainerRef = useRef<HTMLDivElement>(null); // スキル入力欄のリファレンス
 
-    // ジャンル関連のステートとリファレンス
+    // ジャンル関連のステートとリファレンス（例として残しています）
     const [genreOptions] = useState<string[]>(['webアプリ', 'モバイルアプリ', 'ゲームアプリ']);
     const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
     const [isGenreDropdownOpen, setIsGenreDropdownOpen] = useState(false);
@@ -156,8 +152,6 @@ const PostPage = () => {
 
         formData.append('title', title);
         formData.append('description', description);
-        formData.append('githubLink', githubLink);
-        formData.append('productLink', productLink);
         formData.append('isPublic', isPublic.toString());
 
         selectedGenres.forEach((genre) => formData.append('genres', genre));
@@ -190,7 +184,8 @@ const PostPage = () => {
                 <form onSubmit={handleSubmit}>
                     {/* Image Upload Section */}
                     <div
-                        className={`border-dashed border-2 border-gray-300 p-8 flex flex-col items-center mb-6 ${isDragOver ? 'bg-gray-200' : ''}`}
+                        className={`border-dashed border-2 border-gray-300 p-8 flex flex-col items-center mb-6 ${isDragOver ? 'bg-gray-200' : ''
+                            }`}
                         onDragOver={(e) => {
                             e.preventDefault();
                             setIsDragOver(true);
@@ -260,7 +255,7 @@ const PostPage = () => {
                             className="w-full px-4 py-2 border rounded focus:outline-none focus:ring focus:ring-orange-500"
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
-                            placeholder='作品名'
+                            placeholder="作品名"
                         />
                     </div>
 
@@ -272,32 +267,8 @@ const PostPage = () => {
                             rows={4}
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
-                            placeholder='説明文を記入してください。'
+                            placeholder="説明文を記入してください。"
                         ></textarea>
-                    </div>
-
-                    {/* GitHub Link Input */}
-                    <div className="mb-4">
-                        <label className="block text-gray-700 mb-2">GitHubリンク</label>
-                        <input
-                            type="text"
-                            className="w-full px-4 py-2 border rounded focus:outline-none focus:ring focus:ring-orange-500"
-                            value={githubLink}
-                            onChange={(e) => setGithubLink(e.target.value)}
-                            placeholder='GitHubリポジトリのURLを入力してください'
-                        />
-                    </div>
-
-                    {/* Product Link Input */}
-                    <div className="mb-4">
-                        <label className="block text-gray-700 mb-2">プロダクトリンク</label>
-                        <input
-                            type="text"
-                            className="w-full px-4 py-2 border rounded focus:outline-none focus:ring focus:ring-orange-500"
-                            value={productLink}
-                            onChange={(e) => setProductLink(e.target.value)}
-                            placeholder='プロダクトのURLを入力してください'
-                        />
                     </div>
 
                     {/* Tools & Skills Input */}
