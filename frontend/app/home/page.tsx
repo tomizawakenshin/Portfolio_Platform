@@ -1,4 +1,4 @@
-'use client'
+'use client';
 
 import React, { useEffect, useState } from 'react';
 import { User } from '../types/User';
@@ -51,6 +51,12 @@ const HomePage = () => {
             });
     }, []);
 
+    // ▼追加：クリック時に移動させる関数
+    const handlePortfolioClick = (postId: number) => {
+        // 例：作品の詳細ページ /portfolio/[id] に移動したい場合
+        router.push(`/Portfolio/${postId}`);
+    };
+
     const handleWelcomeModalStart = () => {
         setIsWelcomeModalOpen(false);
         setIsMinimumUserInputModalOpen(true);
@@ -100,19 +106,22 @@ const HomePage = () => {
                 return response.json();
             })
             .then(data => {
-                setUser({
-                    ...user,
-                    FirstName: firstName,
-                    LastName: lastName,
-                    FirstNameKana: firstNameKana,
-                    LastNameKana: lastNameKana,
-                    SchoolName: schoolName,
-                    Department: department,
-                    Laboratory: laboratory,
-                    GraduationYear: graduationYear,
-                    DesiredJobTypes: desiredJobTypes,
-                    Skills: skills,
-                } as User);
+                // user を更新
+                setUser(prev => (
+                    prev ? {
+                        ...prev,
+                        FirstName: firstName,
+                        LastName: lastName,
+                        FirstNameKana: firstNameKana,
+                        LastNameKana: lastNameKana,
+                        SchoolName: schoolName,
+                        Department: department,
+                        Laboratory: laboratory,
+                        GraduationYear: graduationYear,
+                        DesiredJobTypes: desiredJobTypes,
+                        Skills: skills,
+                    } : null
+                ));
                 setIsMinimumUserInputModalOpen(false);
             })
             .catch(error => {
@@ -149,8 +158,12 @@ const HomePage = () => {
         <div className="p-8">
             <p className="text-lg mb-4">Welcome, {user.FirstName ? user.FirstName : 'Guest'}</p>
 
-            <button onClick={handlePost} className="mb-4 px-4 py-2 bg-blue-500 text-white rounded">投稿する</button>
-            <button onClick={handleLogout} className="ml-2 px-4 py-2 bg-red-500 text-white rounded">ログアウト</button>
+            <button onClick={handlePost} className="mb-4 px-4 py-2 bg-blue-500 text-white rounded">
+                投稿する
+            </button>
+            <button onClick={handleLogout} className="ml-2 px-4 py-2 bg-red-500 text-white rounded">
+                ログアウト
+            </button>
 
             <WelcomeModal
                 isOpen={isWelcomeModalOpen}
@@ -166,31 +179,43 @@ const HomePage = () => {
 
             <h2 className="text-2xl font-bold mt-8 mb-4">作品</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {portfolio.map((portfolio) => (
-                    <div key={portfolio.ID} className="bg-white shadow-md rounded-lg p-4">
+                {portfolio.map((post) => (
+                    <div
+                        key={post.ID}
+                        className="bg-white shadow-md rounded-lg p-4 cursor-pointer"
+                        onClick={() => handlePortfolioClick(post.ID)}  // 全体をクリックで詳細へ
+                    >
                         <div className="relative">
-                            {portfolio.Images && portfolio.Images.length > 0 && (
+                            {post.Images && post.Images.length > 0 && (
                                 <img
-                                    src={`http://localhost:8080/${portfolio.Images[0].URL}`}
-                                    alt={portfolio.Title}
+                                    src={`http://localhost:8080/${post.Images[0].URL}`}
+                                    alt={post.Title}
                                     className="w-full h-40 object-cover rounded-md"
                                 />
                             )}
-                            <button className="absolute top-2 right-2 bg-white p-1 rounded-full">
+                            <button
+                                className="absolute top-2 right-2 bg-white p-1 rounded-full"
+                                onClick={(e) => {
+                                    e.stopPropagation(); // お気に入りボタンを押したときは、ページ遷移させない
+                                    console.log("お気に入りボタンの処理をここに書く");
+                                }}
+                            >
                                 <span role="img" aria-label="favorite">❤️</span>
                             </button>
                         </div>
-                        <h3 className="text-lg font-semibold mt-2">{portfolio.Title}</h3>
-                        <p className="text-gray-500 text-sm">{portfolio.Description}</p>
+                        <h3 className="text-lg font-semibold mt-2">{post.Title}</h3>
+                        <p className="text-gray-500 text-sm">{post.Description}</p>
                         <div className="flex items-center mt-2">
-                            {portfolio.User && (
+                            {post.User && (
                                 <img
-                                    src={`http://localhost:8080/${portfolio.User.profilePictureURL}`} // プロフィール画像がある場合
-                                    alt={portfolio.User.FirstName}
+                                    src={`http://localhost:8080/${post.User.profilePictureURL}`} // プロフィール画像がある場合
+                                    alt={post.User.FirstName}
                                     className="w-8 h-8 rounded-full mr-2"
                                 />
                             )}
-                            <p className="text-sm font-medium text-gray-700">{portfolio.User ? portfolio.User.FirstName : 'Unknown'}</p>
+                            <p className="text-sm font-medium text-gray-700">
+                                {post.User ? post.User.FirstName : 'Unknown'}
+                            </p>
                         </div>
                     </div>
                 ))}

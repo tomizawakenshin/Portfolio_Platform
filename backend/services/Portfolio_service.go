@@ -34,7 +34,6 @@ func (s *PortfolioService) CreatePost(ctx *gin.Context, userID uint) error {
 
 	// ジャンルを取得
 	genres := ctx.PostFormArray("genres")
-	fmt.Println("Current genres:", genres)
 	// スキルとジャンルを取得（JSON文字列をパースする必要があるかもしれません）
 	skills := ctx.PostFormArray("skills")
 

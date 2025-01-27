@@ -84,7 +84,7 @@ func setupRouter(db *gorm.DB, authService services.IAuthService) *gin.Engine {
 	portfolioRouterWithAuth := r.Group("/Portfolio", middlewares.AuthMiddleware(authService))
 	// portfolioRouterWithAuth := r.Group("/Portfolio")
 	portfolioRouterWithAuth.POST("/posts", portfolioController.CreatePost)
-	// postRouterWithAuth.GET("/:id", postController.GetPostByID)
+	portfolioRouterWithAuth.GET("/:id", portfolioController.GetPostByID)
 	portfolioRouterWithAuth.GET("/user", portfolioController.GetPostsByUserID)
 	portfolioRouterWithAuth.GET("/getAllPosts", portfolioController.GetAllPosts)
 

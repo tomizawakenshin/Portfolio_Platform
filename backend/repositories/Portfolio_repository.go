@@ -27,13 +27,6 @@ func (r *PortfolioRepository) CreatePost(post *models.Post) error {
 		if err := tx.Create(post).Error; err != nil {
 			return err
 		}
-		for _, image := range post.Images {
-			image.PostID = post.ID
-			image.ID = 0
-			if err := tx.Create(&image).Error; err != nil {
-				return err
-			}
-		}
 		return nil
 	})
 }
