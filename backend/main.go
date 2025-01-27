@@ -28,9 +28,11 @@ func setupRouter(db *gorm.DB, authService services.IAuthService) *gin.Engine {
 
 	jobTypeRepository := repositories.NewJobTypeRepository(db)
 	skillRepository := repositories.NewSkillRepository(db)
+	genreRepository := repositories.NewGenreRepository(db)
 	jobTypeService := services.NewJobTypeService(jobTypeRepository)
 	skillService := services.NewSkillService(skillRepository)
-	optionsController := controllers.NewOptionsController(jobTypeService, skillService)
+	genreService := services.NewGenreService(genreRepository)
+	optionsController := controllers.NewOptionsController(jobTypeService, skillService, genreService)
 
 	// ** 追加部分: 投稿関連のリポジトリ、サービス、コントローラの初期化 **
 	portfolioRepository := repositories.NewPortfolioRepository(db)
@@ -79,6 +81,7 @@ func setupRouter(db *gorm.DB, authService services.IAuthService) *gin.Engine {
 	optionRouterWithAuth := r.Group("/options", middlewares.AuthMiddleware(authService))
 	optionRouterWithAuth.GET("/job-types", optionsController.GetJobTypes)
 	optionRouterWithAuth.GET("/skills", optionsController.GetSkills)
+	optionRouterWithAuth.GET("/genre", optionsController.GetGenre)
 
 	// ** 追加部分: 投稿関連のエンドポイント **
 	portfolioRouterWithAuth := r.Group("/Portfolio", middlewares.AuthMiddleware(authService))

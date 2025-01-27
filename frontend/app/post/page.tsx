@@ -15,11 +15,7 @@ const PostPage = () => {
     const skillContainerRef = useRef<HTMLDivElement>(null);
 
     // ジャンル（複数選択ドロップダウン）
-    const [genreOptions] = useState<string[]>([
-        'web開発',
-        'ゲーム開発',
-        'モバイルアプリ開発',
-    ]);
+    const [genreOptions, setGenreOptions] = useState<string[]>([]);
     const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
     const [isGenreDropdownOpen, setIsGenreDropdownOpen] = useState(false);
     const genreDropdownRef = useRef<HTMLDivElement>(null);
@@ -44,6 +40,22 @@ const PostPage = () => {
                 console.error('Error fetching skills:', error);
             });
     }, []);
+
+    useEffect(() => {
+        fetch('http://localhost:8080/options/genre', {
+            credentials: 'include', // 必要に応じて
+        })
+            .then((response) => response.json())
+            .then((data) => {
+                // サーバーから返却されるデータ形式に合わせて対応
+                // もし data.genres が ["web開発", "ゲーム開発", ...] のように格納されているなら
+                setGenreOptions(data.genres);
+            })
+            .catch((error) => {
+                console.error('Error fetching genres:', error);
+            });
+    }, []);
+
 
     //=================================
     // スキル候補の更新
@@ -144,9 +156,9 @@ const PostPage = () => {
         if (!files) return;
         const newFiles = Array.from(files);
 
-        // ここでは 100 枚まで（写真の表記に合わせ）
-        if (images.length + newFiles.length > 100) {
-            alert('画像は最大100枚までです。');
+        // ここでは 4 枚まで（写真の表記に合わせ）
+        if (images.length + newFiles.length > 4) {
+            alert('画像は最大4枚までです。');
             return;
         }
 

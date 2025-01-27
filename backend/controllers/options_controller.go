@@ -12,20 +12,24 @@ import (
 type IOptionsController interface {
 	GetJobTypes(ctx *gin.Context)
 	GetSkills(ctx *gin.Context)
+	GetGenre(ctx *gin.Context)
 }
 
 type OptionsController struct {
 	jobTypeService services.IJobTypeService
 	skillService   services.ISkillService
+	genreService   services.IGenreService
 }
 
 func NewOptionsController(
 	jobTypeService services.IJobTypeService,
 	skillService services.ISkillService,
+	genreService services.IGenreService,
 ) IOptionsController {
 	return &OptionsController{
 		jobTypeService: jobTypeService,
 		skillService:   skillService,
+		genreService:   genreService,
 	}
 }
 
@@ -59,4 +63,20 @@ func (c *OptionsController) GetSkills(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"skills": skillNames})
+}
+
+func (c *OptionsController) GetGenre(ctx *gin.Context) {
+	genres, err := c.genreService.GetAllGenre()
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get genres"})
+		return
+	}
+
+	// `Name` フィールドのみを返すようにマッピング
+	var genreNames []string
+	for _, genre := range genres {
+		genreNames = append(genreNames, genre.Name)
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"genres": genreNames})
 }
