@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { Portfolio } from "../../types/Portfolio";  // 例：エイリアスや相対パスは適宜変更
-import { User } from "../../types/User";        // こちらは必要なら直接import
 
 const PortfolioPage = () => {
     const params = useParams();

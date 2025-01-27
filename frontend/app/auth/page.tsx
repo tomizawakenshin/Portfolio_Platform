@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from "react";
-import Header from "../components/Header";
+import Header from "../components/Header_Title";
 import MainContent from "../components/MainContent";
 import SignUpModal from "../components/SignUpModal";
 import LoginModal from "../components/LoginModal";
