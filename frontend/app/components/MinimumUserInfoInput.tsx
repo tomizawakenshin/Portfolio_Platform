@@ -376,7 +376,10 @@ const MnimumUserInfoInputModal: React.FC<MnimumUserInfoInputModalProps> = ({ isO
                         </label>
                         <select
                             value={graduationYear}
-                            onChange={(e) => setGraduationYear(e.target.value)}
+                            onChange={(e) => {
+                                // ここで"卒"を取り除いてステートにセット
+                                setGraduationYear(e.target.value.replace("卒", ""));
+                            }}
                             className={`w-full p-2 border ${errors.graduationYear ? 'border-red-500' : 'border-gray-300'} rounded`}
                         >
                             <option value="">卒業予定年を選択</option>

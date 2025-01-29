@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"backend/dto"
 	"backend/models"
 	"backend/services"
 	"net/http"
@@ -25,7 +26,6 @@ func NewPortfolioController(portfolioService services.IPortfolioService) IPortfo
 }
 
 func (c *PortfolioController) CreatePost(ctx *gin.Context) {
-	// ユーザー認証情報を取得
 	user, exists := ctx.Get("user")
 	if !exists {
 		ctx.AbortWithStatus(http.StatusUnauthorized)
@@ -33,19 +33,33 @@ func (c *PortfolioController) CreatePost(ctx *gin.Context) {
 	}
 	currentUser := user.(*models.User)
 
-	// フォームの最大サイズを設定（例: 32MB）
+	// 1) まずmultipartをパース
 	if err := ctx.Request.ParseMultipartForm(32 << 20); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse multipart form", "details": err.Error()})
 		return
 	}
 
-	// フォームデータをサービス層に渡す
-	if err := c.portfolioService.CreatePost(ctx, currentUser.ID); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create post", "details": err.Error()})
+	// 2) テキスト系をDTOにマッピング:
+	var input dto.CreatePostInput
+	// 例: c.ShouldBind(&input) でも構わないが、multipart + JSON 混在の場合は工夫が必要
+	// ここではシンプルに ctx.PostForm() して manual で入れるか
+	input.Title = ctx.PostForm("title")
+	input.Description = ctx.PostForm("description")
+	// genres, skillsは PostFormArray() で取得して、inputへ
+	input.Genres = ctx.PostFormArray("genres")
+	input.Skills = ctx.PostFormArray("skills")
+
+	// 3) 画像はmultipart.FileHeaderで受け取る
+	form, _ := ctx.MultipartForm()
+	fileHeaders := form.File["images"] // []*multipart.FileHeader
+
+	// 4) サービスに「DTO + 画像ファイル群 + userID」を渡す
+	err := c.portfolioService.CreatePost(input, fileHeaders, currentUser.ID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create post"})
 		return
 	}
 
-	// 成功レスポンスを返す
 	ctx.JSON(http.StatusOK, gin.H{"message": "Post created successfully"})
 }
 

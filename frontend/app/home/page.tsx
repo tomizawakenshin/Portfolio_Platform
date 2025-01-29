@@ -218,7 +218,7 @@ const HomePage = () => {
     // イベントハンドラ
     // -----------------------------
     const handlePost = () => {
-        router.push("/post/");
+        router.push("/post");
     };
 
     const handleLogout = () => {
@@ -243,7 +243,7 @@ const HomePage = () => {
     };
 
     // ユーザー情報更新
-    const handleUserInfoSubmit = (
+    const handleUserInfoSubmit = async (
         firstName: string,
         lastName: string,
         firstNameKana: string,
@@ -255,7 +255,47 @@ const HomePage = () => {
         desiredJobTypes: string[],
         skills: string[]
     ) => {
-        // ... ユーザー情報の送信処理など
+        try {
+            // PUT リクエストでサーバーに更新を依頼
+            const res = await fetch('http://localhost:8080/user/UpdateMinimumUserInfo', {
+                method: 'PUT',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    FirstName: firstName,
+                    LastName: lastName,
+                    FirstNameKana: firstNameKana,
+                    LastNameKana: lastNameKana,
+                    SchoolName: schoolName,
+                    Department: department,
+                    Laboratory: laboratory,
+                    // 「2025卒」のような文字列の場合、もしサーバーが数値を期待するなら変換処理が必要
+                    GraduationYear: graduationYear.replace("卒", ""),
+                    DesiredJobTypes: desiredJobTypes,
+                    Skills: skills,
+                }),
+            });
+
+            if (!res.ok) {
+                throw new Error('ユーザー情報の更新に失敗しました');
+            }
+
+            const data = await res.json();
+            // サーバーが更新後のユーザー情報を返す場合
+            if (data.user) {
+                // 更新したユーザーをステートに反映
+                setUser(data.user);
+            }
+
+            // モーダルを閉じる
+            setIsMinimumUserInputModalOpen(false);
+
+        } catch (error) {
+            console.error(error);
+            alert("ユーザー情報の更新中にエラーが発生しました。");
+        }
     };
 
     // 卒業年ドロップダウン

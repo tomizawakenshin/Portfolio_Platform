@@ -5,6 +5,12 @@ export interface User {
     FirstNameKana: string;
     LastNameKana: string
     Email: string;
-    profilePictureURL?: string;
+    SchoolName: string;
+    Department: string;
+    Laboratory: string;
     GraduationYear: number;
+    DesiredJobTypes: string[];
+    Skills: string[];
+    SelfIntroduction: string;
+    ProfileImageURL: string;
 }

@@ -48,7 +48,6 @@ func (c *UserController) GetUserInfo(ctx *gin.Context) {
 }
 
 func (c *UserController) UpdateMinimumUserInfo(ctx *gin.Context) {
-	// コンテキストからユーザーを取得
 	user, exists := ctx.Get("user")
 	if !exists {
 		ctx.AbortWithStatus(http.StatusUnauthorized)
@@ -56,19 +55,32 @@ func (c *UserController) UpdateMinimumUserInfo(ctx *gin.Context) {
 	}
 	currentUser := user.(*models.User)
 
-	// リクエストボディをバインド
+	// multipartフォームのパース
+	if err := ctx.Request.ParseMultipartForm(32 << 20); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse multipart form", "details": err.Error()})
+		return
+	}
+
+	// JSON部をDTOにバインド(画像はDTOに含めない)
 	var input dto.MinimumUserInfoInput
-	if err := ctx.ShouldBindJSON(&input); err != nil {
+	if err := ctx.ShouldBind(&input); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input", "details": err.Error()})
 		return
 	}
 
-	// サービスを呼び出してユーザー情報を更新
-	if err := c.userService.UpdateMinimumUserInfo(currentUser.ID, input); err != nil {
+	// 画像が送られていれば取り出す
+	form, _ := ctx.MultipartForm()
+	fileHeaders := form.File["profileImage"] // <input name="profileImage" ...>
+
+	// サービス層へ
+	updatedUser, err := c.userService.UpdateMinimumUserInfo(currentUser.ID, input, fileHeaders)
+	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user info"})
 		return
 	}
 
-	// 成功レスポンスを返す
-	ctx.JSON(http.StatusOK, gin.H{"message": "User information updated successfully"})
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": "User info updated",
+		"user":    updatedUser,
+	})
 }

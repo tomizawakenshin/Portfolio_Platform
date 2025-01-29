@@ -28,4 +28,6 @@ type User struct {
 	GraduationYear        string
 	DesiredJobTypes       pq.StringArray `gorm:"type:text[]"`
 	Skills                pq.StringArray `gorm:"type:text[]"`
+	SelfIntroduction      string
+	ProfileImageURL       string
 }
