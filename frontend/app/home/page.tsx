@@ -407,9 +407,9 @@ const HomePage = () => {
     }
 
     // 写真の有無をHeaderに渡す
-    const userHasPhoto = !!user.profilePictureURL;
-    const userPhotoURL = user.profilePictureURL
-        ? `http://localhost:8080/${user.profilePictureURL}`
+    const userHasPhoto = !!user.ProfileImageURL;
+    const userPhotoURL = user.ProfileImageURL
+        ? `http://localhost:8080/${user.ProfileImageURL}`
         : undefined;
 
     return (
@@ -590,8 +590,8 @@ const HomePage = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {filteredPortfolio.map((post) => {
                         // ユーザー写真 or デフォルト
-                        const userPhoto = post.User?.profilePictureURL
-                            ? `http://localhost:8080/${post.User.profilePictureURL}`
+                        const userPhoto = post.User?.ProfileImageURL
+                            ? `http://localhost:8080/${post.User.ProfileImageURL}`
                             : "/images/defaultUserIcon.png";
 
                         // イニシャルを取得
