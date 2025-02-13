@@ -3,30 +3,39 @@ package services
 import (
 	"fmt"
 	"net/smtp"
+	"os"
 )
 
+// IEmailService はメール送信機能のインターフェースです。
 type IEmailService interface {
-	SendRegistrationEmail(to string, verificationLink string) error
+	SendRegistrationEmail(to string, verificationToken string) error
 	SendPasswordResetEmail(to string, resetToken string) error
 	SendWelcomeEmail(to string) error
 	SendPasswordResetConfirmationEmail(to string) error
 }
 
+// EmailService は IEmailService の実装です。
 type EmailService struct{}
 
-// メール送信のための関数を定義
+// NewEmailService は EmailService の新しいインスタンスを返します。
 func NewEmailService() IEmailService {
 	return &EmailService{}
 }
 
-// メール送信機能の実装
+// SendRegistrationEmail は仮登録メールを送信します。
 func (s *EmailService) SendRegistrationEmail(to string, verificationToken string) error {
-	from := "info@login-go.app" // デフォルトの送信元アドレス
-	smtpHost := "localhost"     // MailHogのホスト
-	smtpPort := "1025"          // MailHogのデフォルトSMTPポート
+	from := "info@login-go.app" // 送信元アドレス
 
-	// メールの件名と内容をHTML形式で作成
+	// BACKEND_URL を環境変数から取得（未設定ならデフォルト値）
+	backendURL := os.Getenv("BACKEND_URL")
+
+	// SMTP_HOST, SMTP_PORT を環境変数から取得（未設定ならデフォルト値）
+	smtpHost := os.Getenv("SMTP_HOST")
+	smtpPort := os.Getenv("SMTP_PORT")
+
 	subject := "ReDesigner for Student 仮登録"
+	// verificationLink を BACKEND_URL から動的に組み立て
+	verificationLink := fmt.Sprintf("%s/auth/verify?token=%s", backendURL, verificationToken)
 	body := fmt.Sprintf(`
     <html>
     <body>
@@ -35,32 +44,35 @@ func (s *EmailService) SendRegistrationEmail(to string, verificationToken string
             <p>こんにちは、</p>
             <p>ReDesigner for Studentへの仮登録を受け付けました。</p>
             <p>下記のボタンをクリックして、本登録を完了させてください。</p>
-            <a href="http://localhost:8080/auth/verify?token=%s" style="padding: 10px 20px; background-color: #F15A24; color: #fff; text-decoration: none; border-radius: 5px;">本登録を完了する</a>
+            <a href="%s" style="padding: 10px 20px; background-color: #F15A24; color: #fff; text-decoration: none; border-radius: 5px;">本登録を完了する</a>
             <p>このリンクの有効期限は<strong>7日間</strong>です。</p>
         </div>
     </body>
-    </html>`, verificationToken)
+    </html>`, verificationLink)
 
-	// メールヘッダーと本文の組み立て
 	message := []byte("To: " + to + "\r\n" +
 		"Subject: " + subject + "\r\n" +
 		"MIME-version: 1.0;\r\n" +
 		"Content-Type: text/html; charset=\"UTF-8\";\r\n" +
 		"\r\n" + body + "\r\n")
 
-	// メール送信
 	return smtp.SendMail(smtpHost+":"+smtpPort, nil, from, []string{to}, message)
 }
 
+// SendPasswordResetEmail はパスワードリセットの案内メールを送信します。
 func (s *EmailService) SendPasswordResetEmail(to string, resetToken string) error {
 	from := "info@login-go.app"
-	smtpHost := "localhost"
-	smtpPort := "1025"
+
+	// FRONTEND_URL を環境変数から取得（未設定ならデフォルト値）
+	frontendURL := os.Getenv("FRONTEND_URL")
+
+	// SMTP_HOST, SMTP_PORT を環境変数から取得
+	smtpHost := os.Getenv("SMTP_HOST")
+	smtpPort := os.Getenv("SMTP_PORT")
 
 	subject := "パスワードリセットのご案内"
-	// リセットリンクを構築
-	resetLink := fmt.Sprintf("http://localhost:3000/PasswordReset/%s", resetToken)
-
+	// リセットリンクを FRONTEND_URL から組み立てる
+	resetLink := fmt.Sprintf("%s/PasswordReset/%s", frontendURL, resetToken)
 	body := fmt.Sprintf(`
     <html>
     <body>
@@ -74,24 +86,23 @@ func (s *EmailService) SendPasswordResetEmail(to string, resetToken string) erro
     </body>
     </html>`, resetLink)
 
-	// メールヘッダーとメッセージ
 	message := []byte("To: " + to + "\r\n" +
 		"Subject: " + subject + "\r\n" +
 		"MIME-version: 1.0;\r\n" +
 		"Content-Type: text/html; charset=\"UTF-8\";\r\n" +
 		"\r\n" + body + "\r\n")
 
-	// メール送信
 	return smtp.SendMail(smtpHost+":"+smtpPort, nil, from, []string{to}, message)
 }
 
+// SendWelcomeEmail は歓迎メールを送信します。
 func (s *EmailService) SendWelcomeEmail(to string) error {
 	from := "info@login-go.app"
-	smtpHost := "localhost"
-	smtpPort := "1025"
+
+	smtpHost := os.Getenv("SMTP_HOST")
+	smtpPort := os.Getenv("SMTP_PORT")
 
 	subject := "ReDesigner for Student へようこそ！"
-
 	body := `
     <html>
     <body>
@@ -106,24 +117,23 @@ func (s *EmailService) SendWelcomeEmail(to string) error {
     </html>
     `
 
-	// メールヘッダーと本文の組み立て
 	message := []byte("To: " + to + "\r\n" +
 		"Subject: " + subject + "\r\n" +
 		"MIME-version: 1.0;\r\n" +
 		"Content-Type: text/html; charset=\"UTF-8\";\r\n" +
 		"\r\n" + body + "\r\n")
 
-	// メール送信
 	return smtp.SendMail(smtpHost+":"+smtpPort, nil, from, []string{to}, message)
 }
 
+// SendPasswordResetConfirmationEmail はパスワード変更完了のお知らせメールを送信します。
 func (s *EmailService) SendPasswordResetConfirmationEmail(to string) error {
 	from := "info@login-go.app"
-	smtpHost := "localhost"
-	smtpPort := "1025"
+
+	smtpHost := os.Getenv("SMTP_HOST")
+	smtpPort := os.Getenv("SMTP_PORT")
 
 	subject := "パスワード変更完了のお知らせ"
-
 	body := fmt.Sprintf(`
     <html>
     <body>
@@ -139,13 +149,11 @@ func (s *EmailService) SendPasswordResetConfirmationEmail(to string) error {
     </html>
     `, to)
 
-	// メールヘッダーと本文の組み立て
 	message := []byte("To: " + to + "\r\n" +
 		"Subject: " + subject + "\r\n" +
 		"MIME-version: 1.0;\r\n" +
 		"Content-Type: text/html; charset=\"UTF-8\";\r\n" +
 		"\r\n" + body + "\r\n")
 
-	// メール送信
 	return smtp.SendMail(smtpHost+":"+smtpPort, nil, from, []string{to}, message)
 }

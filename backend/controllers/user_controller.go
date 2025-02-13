@@ -6,6 +6,7 @@ import (
 	"backend/dto"
 	"backend/models"
 	"backend/services"
+	"mime/multipart"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -55,22 +56,31 @@ func (c *UserController) UpdateMinimumUserInfo(ctx *gin.Context) {
 	}
 	currentUser := user.(*models.User)
 
-	// multipartフォームのパース
-	if err := ctx.Request.ParseMultipartForm(32 << 20); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse multipart form", "details": err.Error()})
-		return
-	}
-
-	// JSON部をDTOにバインド(画像はDTOに含めない)
 	var input dto.MinimumUserInfoInput
-	if err := ctx.ShouldBind(&input); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input", "details": err.Error()})
-		return
-	}
+	var fileHeaders []*multipart.FileHeader
 
-	// 画像が送られていれば取り出す
-	form, _ := ctx.MultipartForm()
-	fileHeaders := form.File["profileImage"] // <input name="profileImage" ...>
+	// リクエストのContent-Typeを取得
+	contentType := ctx.Request.Header.Get("Content-Type")
+
+	// JSONリクエストの場合の処理
+	if contentType == "application/json" || contentType == "application/json; charset=utf-8" {
+		if err := ctx.ShouldBindJSON(&input); err != nil {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON input", "details": err.Error()})
+			return
+		}
+	} else {
+		// multipart/form-dataの場合の処理
+		if err := ctx.Request.ParseMultipartForm(32 << 20); err != nil {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse multipart form", "details": err.Error()})
+			return
+		}
+		if err := ctx.ShouldBind(&input); err != nil {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input", "details": err.Error()})
+			return
+		}
+		form, _ := ctx.MultipartForm()
+		fileHeaders = form.File["profileImage"]
+	}
 
 	// サービス層へ
 	updatedUser, err := c.userService.UpdateMinimumUserInfo(currentUser.ID, input, fileHeaders)

@@ -1,6 +1,7 @@
 // hooks/useAuthCheck.ts
 'use client';
 
+import { BACKEND_URL } from '@/config';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
@@ -10,7 +11,7 @@ const useAuthCheck = () => {
     useEffect(() => {
         const checkAuth = async () => {
             try {
-                const response = await fetch('http://localhost:8080/auth/check', {
+                const response = await fetch(`${BACKEND_URL}/auth/check`, {
                     method: 'GET',
                     credentials: 'include', // クッキーを含める
                 });

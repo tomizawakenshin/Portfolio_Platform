@@ -1,4 +1,5 @@
 // components/ForgotPasswordModal.tsx
+import { BACKEND_URL } from '@/config';
 import React, { FC, useState } from 'react';
 
 interface ForgotPasswordModalProps {
@@ -28,7 +29,7 @@ const ForgotPasswordModal: FC<ForgotPasswordModalProps> = ({ isOpen, onClose }) 
         }
 
         // API呼び出し
-        fetch('http://localhost:8080/auth/RequestPasswordReset', {
+        fetch(`${BACKEND_URL}/auth/RequestPasswordReset`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

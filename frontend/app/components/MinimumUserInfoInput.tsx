@@ -1,3 +1,4 @@
+import { BACKEND_URL } from '@/config';
 import { useRouter } from 'next/navigation';
 import React, { useEffect, useRef, useState } from 'react';
 
@@ -56,7 +57,7 @@ const MnimumUserInfoInputModal: React.FC<MnimumUserInfoInputModalProps> = ({ isO
     const katakanaRegex = /^[ァ-ンヴー]*$/;
 
     useEffect(() => {
-        fetch('http://localhost:8080/options/job-types', {
+        fetch(`${BACKEND_URL}/options/job-types`, {
             credentials: 'include',
         })
             .then((response) => response.json())
@@ -67,7 +68,7 @@ const MnimumUserInfoInputModal: React.FC<MnimumUserInfoInputModalProps> = ({ isO
                 console.error('Error fetching job types:', error);
             });
 
-        fetch('http://localhost:8080/options/skills', {
+        fetch(`${BACKEND_URL}/options/skills`, {
             credentials: 'include',
         })
             .then((response) => response.json())
@@ -213,7 +214,7 @@ const MnimumUserInfoInputModal: React.FC<MnimumUserInfoInputModalProps> = ({ isO
     };
 
     const handleLogout = () => {
-        fetch('http://localhost:8080/auth/logout', {
+        fetch(`${BACKEND_URL}/auth/logout`, {
             method: 'POST',
             credentials: 'include',
         })
@@ -384,9 +385,15 @@ const MnimumUserInfoInputModal: React.FC<MnimumUserInfoInputModalProps> = ({ isO
                         >
                             <option value="">卒業予定年を選択</option>
                             {/* 卒業年度のオプションを動的に生成 */}
-                            {graduationYearOptions.map((year) => (
-                                <option key={year} value={year}>{year}</option>
-                            ))}
+                            {graduationYearOptions.map((year) => {
+                                const numericYear = year.replace("卒", "");
+                                return (
+                                    <option key={year} value={numericYear}>
+                                        {year}
+                                    </option>
+                                );
+                            })}
+
                         </select>
                         {errors.graduationYear && <p className="text-red-500 text-sm mt-1">{errors.graduationYear}</p>}
                     </div>

@@ -33,7 +33,11 @@ func (r *PortfolioRepository) CreatePost(post *models.Post) error {
 
 func (r *PortfolioRepository) GetPostByID(id uint) (*models.Post, error) {
 	var post models.Post
-	if err := r.db.Preload("Images").First(&post, id).Error; err != nil {
+	if err := r.db.
+		Preload("Images").
+		Preload("User"). // ← これを追加
+		First(&post, id).
+		Error; err != nil {
 		return nil, err
 	}
 	return &post, nil

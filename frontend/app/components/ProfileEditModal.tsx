@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { User } from "../types/User";
+import { BACKEND_URL } from "@/config";
 
 interface ProfileEditModalProps {
     isOpen: boolean;
@@ -37,7 +38,7 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
             // プレビューは、現在のProfileImageURLを表示するか、
             // あるいは未変更なら何もしない
             if (user.ProfileImageURL) {
-                setIconPreview(`http://localhost:8080/${user.ProfileImageURL}`);
+                setIconPreview(`${BACKEND_URL}/${user.ProfileImageURL}`);
             } else {
                 setIconPreview("");
             }
@@ -73,7 +74,7 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({
 
             // ここでは同じ UpdateMinimumUserInfo に PUT するが
             // 例えばPOSTにしても構わない。Golang側で ParseMultipartForm() を呼ぶ必要がある
-            const res = await fetch("http://localhost:8080/user/UpdateMinimumUserInfo", {
+            const res = await fetch(`${BACKEND_URL}/user/UpdateMinimumUserInfo`, {
                 method: "PUT",
                 credentials: "include",
                 body: formData,

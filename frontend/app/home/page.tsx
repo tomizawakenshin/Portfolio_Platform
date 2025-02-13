@@ -9,6 +9,7 @@ import useAuthCheck from '../hooks/useAuthCheck';
 import Header from '../components/Header_Home'; // ← 作成したHeaderコンポーネントをimport
 import WelcomeModal from '../components/WelcomeModal';
 import MnimumUserInfoInputModal from '../components/MinimumUserInfoInput';
+import { BACKEND_URL } from '@/config';
 
 // カタカナ→イニシャル（英字）の簡易変換例 (先頭1文字だけのマッピング)
 function getInitial(kanaChar: string): string {
@@ -111,7 +112,7 @@ const HomePage = () => {
         setGraduationYearOptions(getGraduationYearOptions());
 
         // ユーザー情報
-        fetch('http://localhost:8080/user/GetInfo', { credentials: 'include' })
+        fetch(`${BACKEND_URL}/user/GetInfo`, { credentials: 'include' })
             .then(res => {
                 if (!res.ok) throw new Error("Failed to fetch user info");
                 return res.json();
@@ -125,7 +126,7 @@ const HomePage = () => {
             .catch(err => console.error(err));
 
         // 作品情報
-        fetch('http://localhost:8080/Portfolio/getAllPosts', { credentials: 'include' })
+        fetch(`${BACKEND_URL}/Portfolio/getAllPosts`, { credentials: 'include' })
             .then(res => res.json())
             .then(data => {
                 setPortfolio(data.portfolio);
@@ -133,7 +134,7 @@ const HomePage = () => {
             .catch(err => console.error(err));
 
         // ジャンル一覧
-        fetch('http://localhost:8080/options/genre', { credentials: 'include' })
+        fetch(`${BACKEND_URL}/options/genre`, { credentials: 'include' })
             .then(res => res.json())
             .then(data => {
                 setAvailableGenres(data.genres);
@@ -141,7 +142,7 @@ const HomePage = () => {
             .catch(err => console.error(err));
 
         // スキル一覧
-        fetch('http://localhost:8080/options/skills', { credentials: 'include' })
+        fetch(`${BACKEND_URL}/options/skills`, { credentials: 'include' })
             .then(res => res.json())
             .then(data => {
                 setAvailableSkills(data.skills);
@@ -222,7 +223,7 @@ const HomePage = () => {
     };
 
     const handleLogout = () => {
-        fetch('http://localhost:8080/auth/logout', { method: "POST", credentials: 'include' })
+        fetch(`${BACKEND_URL}/auth/logout`, { method: "POST", credentials: 'include' })
             .then(res => {
                 if (res.ok) {
                     router.push("/auth");
@@ -257,7 +258,7 @@ const HomePage = () => {
     ) => {
         try {
             // PUT リクエストでサーバーに更新を依頼
-            const res = await fetch('http://localhost:8080/user/UpdateMinimumUserInfo', {
+            const res = await fetch(`${BACKEND_URL}/user/UpdateMinimumUserInfo`, {
                 method: 'PUT',
                 credentials: 'include',
                 headers: {
@@ -409,7 +410,7 @@ const HomePage = () => {
     // 写真の有無をHeaderに渡す
     const userHasPhoto = !!user.ProfileImageURL;
     const userPhotoURL = user.ProfileImageURL
-        ? `http://localhost:8080/${user.ProfileImageURL}`
+        ? `${BACKEND_URL}/${user.ProfileImageURL}`
         : undefined;
 
     return (
@@ -591,7 +592,7 @@ const HomePage = () => {
                     {filteredPortfolio.map((post) => {
                         // ユーザー写真 or デフォルト
                         const userPhoto = post.User?.ProfileImageURL
-                            ? `http://localhost:8080/${post.User.ProfileImageURL}`
+                            ? `${BACKEND_URL}/${post.User.ProfileImageURL}`
                             : "/images/defaultUserIcon.png";
 
                         // イニシャルを取得
@@ -617,7 +618,7 @@ const HomePage = () => {
                                 <div className="relative overflow-hidden rounded group">
                                     {post.Images && post.Images.length > 0 && (
                                         <img
-                                            src={`http://localhost:8080/${post.Images[0].URL}`}
+                                            src={`${BACKEND_URL}/${post.Images[0].URL}`}
                                             alt={post.Title}
                                             // group-hover:scale-105 を指定し、ホバー時に拡大
                                             className="w-full h-40 object-cover transition-transform duration-200 group-hover:scale-105"

@@ -1,4 +1,5 @@
 // components/SignUpModal.tsx
+import { BACKEND_URL } from "@/config";
 import { useRouter } from "next/navigation";
 import { FC, useState } from "react";
 
@@ -26,7 +27,7 @@ const SignUpModal: FC<SignUpModalProps> = ({ isOpen, onClose, onLoginClick, onEm
     const handleGoogleSignUpClick = () => {
         if (isAgreed) {
             // バックエンドのGoogleログインエンドポイントにリダイレクト
-            window.location.href = "http://localhost:8080/auth/google/login";
+            window.location.href = `${BACKEND_URL}/auth/google/login`;
         }
     };
 

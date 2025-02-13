@@ -7,6 +7,7 @@ import { Portfolio } from "../types/Portfolio";
 import Header from "../components/Header_Home";
 import SkillEditModal from "../components/SkillEditModal";
 import ProfileEditModal from "../components/ProfileEditModal";
+import { BACKEND_URL } from "@/config";
 
 export default function AccountPage() {
     const router = useRouter();
@@ -55,7 +56,7 @@ export default function AccountPage() {
     // ============================================================
     useEffect(() => {
         // (1) ユーザー情報
-        fetch("http://localhost:8080/user/GetInfo", { credentials: "include" })
+        fetch(`${BACKEND_URL}/user/GetInfo`, { credentials: "include" })
             .then((res) => {
                 if (!res.ok) throw new Error("Failed to fetch user info");
                 return res.json();
@@ -69,7 +70,7 @@ export default function AccountPage() {
             });
 
         // (2) ポートフォリオ一覧
-        fetch("http://localhost:8080/Portfolio/getUserPosts", {
+        fetch(`${BACKEND_URL}/Portfolio/getUserPosts`, {
             credentials: "include",
         })
             .then((res) => {
@@ -82,7 +83,7 @@ export default function AccountPage() {
             .catch((err) => console.error(err));
 
         // (3) 希望条件の職種候補
-        fetch("http://localhost:8080/options/job-types", { credentials: "include" })
+        fetch(`${BACKEND_URL}/options/job-types`, { credentials: "include" })
             .then((res) => res.json())
             .then((data) => {
                 setJobTypeOptions(data.jobTypes || []);
@@ -111,7 +112,7 @@ export default function AccountPage() {
         try {
             const numericYear = tempGraduationYear.replace("卒", "");
 
-            const res = await fetch("http://localhost:8080/user/UpdateMinimumUserInfo", {
+            const res = await fetch(`${BACKEND_URL}/user/UpdateMinimumUserInfo`, {
                 method: "PUT",
                 credentials: "include",
                 headers: { "Content-Type": "application/json" },
@@ -157,7 +158,7 @@ export default function AccountPage() {
     const handleUpdateDesiredJobs = async () => {
         if (!user) return;
         try {
-            const res = await fetch("http://localhost:8080/user/UpdateMinimumUserInfo", {
+            const res = await fetch(`${BACKEND_URL}/user/UpdateMinimumUserInfo`, {
                 method: "PUT",
                 credentials: "include",
                 headers: { "Content-Type": "application/json" },
@@ -186,7 +187,7 @@ export default function AccountPage() {
     const handleSkillModalSave = async (newSkills: string[]) => {
         if (!user) return;
         try {
-            const res = await fetch("http://localhost:8080/user/UpdateMinimumUserInfo", {
+            const res = await fetch(`${BACKEND_URL}/user/UpdateMinimumUserInfo`, {
                 method: "PUT",
                 credentials: "include",
                 headers: { "Content-Type": "application/json" },
@@ -220,7 +221,7 @@ export default function AccountPage() {
     const handleUpdateIntro = async () => {
         if (!user) return;
         try {
-            const res = await fetch("http://localhost:8080/user/UpdateMinimumUserInfo", {
+            const res = await fetch(`${BACKEND_URL}/user/UpdateMinimumUserInfo`, {
                 method: "PUT",
                 credentials: "include",
                 headers: { "Content-Type": "application/json" },
@@ -268,7 +269,7 @@ export default function AccountPage() {
     // ============================================================
     const getProfilePhotoURL = (u: User) =>
         u.ProfileImageURL
-            ? `http://localhost:8080/${u.ProfileImageURL}`
+            ? `${BACKEND_URL}/${u.ProfileImageURL}`
             : "/images/defaultUserIcon.png";
 
     if (isLoading) {
@@ -587,7 +588,7 @@ export default function AccountPage() {
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                                 {userPortfolio.map((post) => {
                                     const firstImage = post.Images?.[0]?.URL
-                                        ? `http://localhost:8080/${post.Images[0].URL}`
+                                        ? `${BACKEND_URL}/${post.Images[0].URL}`
                                         : null;
 
                                     return (

@@ -8,11 +8,10 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"os"
-	"strings"
-
 	"log"
 	"net/http"
+	"os"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -42,8 +41,9 @@ type AuthController struct {
 }
 
 func NewAuthController(service services.IAuthService, emailService services.IEmailService) IAuthController {
+	backendURL := os.Getenv("BACKEND_URL")
 	googleOauthConfig := &oauth2.Config{
-		RedirectURL:  "http://localhost:8080/auth/google/callback",
+		RedirectURL:  backendURL + "/auth/google/callback",
 		ClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
 		ClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
 		Scopes:       []string{"openid", "https://www.googleapis.com/auth/userinfo.email", "https://www.googleapis.com/auth/userinfo.profile"},
@@ -64,24 +64,19 @@ func (c *AuthController) SignUp(ctx *gin.Context) {
 		return
 	}
 
-	// 本登録用のトークンを生成
 	verificationToken := generateVerificationToken()
 
 	err := c.services.SignUp(input.Email, input.Password, verificationToken)
 	if err != nil {
 		if err.Error() == "user already exists" {
-			// ユーザーが既に存在する場合はログイン処理に移行
 			jwtToken, tokenExpiry, err := c.services.Login(input.Email, input.Password, false)
 			if err != nil {
 				ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
 				return
 			}
-
-			// 【変更点①】既存ユーザーでログインした場合、ステータスコードを http.StatusOK（200）に設定
-			ctx.SetCookie("jwt-token", *jwtToken, int(tokenExpiry.Seconds()), "/", "localhost", false, true)
-			ctx.JSON(http.StatusOK, gin.H{
-				"message": "Logged in successfully",
-				"token":   jwtToken})
+			cookieDomain := os.Getenv("COOKIE_DOMAIN")
+			ctx.SetCookie("jwt-token", *jwtToken, int(tokenExpiry.Seconds()), "/", cookieDomain, false, true)
+			ctx.JSON(http.StatusOK, gin.H{"message": "Logged in successfully", "token": jwtToken})
 			return
 		}
 
@@ -89,25 +84,20 @@ func (c *AuthController) SignUp(ctx *gin.Context) {
 		return
 	}
 
-	// メール送信
 	if err := c.emailService.SendRegistrationEmail(input.Email, verificationToken); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send email"})
 		return
 	}
 
-	// 【変更点②】新規ユーザー作成時、ステータスコードを http.StatusCreated（201）に設定
 	ctx.JSON(http.StatusCreated, gin.H{"message": "仮登録が完了しました。メールを確認してください。"})
 }
 
 func generateVerificationToken() string {
-	// 16バイトのランダムなトークンを生成
 	token := make([]byte, 16)
 	_, err := rand.Read(token)
 	if err != nil {
 		log.Fatalf("Failed to generate token: %v", err)
 	}
-
-	// トークンを16進数にエンコード
 	return hex.EncodeToString(token)
 }
 
@@ -120,13 +110,14 @@ func (c *AuthController) VerifyAccount(ctx *gin.Context) {
 
 	user, err := c.services.VerifyUser(token)
 	if err != nil {
+		frontendURL := os.Getenv("FRONTEND_URL")
 		switch err {
 		case services.ErrUserAlreadyVerified:
-			ctx.Redirect(http.StatusFound, "http://localhost:3000/auth")
+			ctx.Redirect(http.StatusFound, frontendURL+"/auth")
 		case services.ErrVerificationTokenExpired:
-			ctx.Redirect(http.StatusFound, "http://localhost:3000/auth")
+			ctx.Redirect(http.StatusFound, frontendURL+"/auth")
 		case services.ErrUserNotFound:
-			ctx.Redirect(http.StatusFound, "http://localhost:3000/auth")
+			ctx.Redirect(http.StatusFound, frontendURL+"/auth")
 		default:
 			ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
@@ -144,9 +135,11 @@ func (c *AuthController) VerifyAccount(ctx *gin.Context) {
 		return
 	}
 
-	ctx.SetCookie("jwt-token", *jwtToken, int(tokenExpiry.Seconds()), "/", "localhost", false, true)
+	cookieDomain := os.Getenv("COOKIE_DOMAIN")
+	ctx.SetCookie("jwt-token", *jwtToken, int(tokenExpiry.Seconds()), "/", cookieDomain, false, true)
 
-	ctx.Redirect(http.StatusFound, "http://localhost:3000/home")
+	frontendURL := os.Getenv("FRONTEND_URL")
+	ctx.Redirect(http.StatusFound, frontendURL+"/home")
 }
 
 func (c *AuthController) Login(ctx *gin.Context) {
@@ -166,7 +159,8 @@ func (c *AuthController) Login(ctx *gin.Context) {
 		return
 	}
 
-	ctx.SetCookie("jwt-token", *jwtToken, int(tokenExpiry.Seconds()), "/", "localhost", false, true)
+	cookieDomain := os.Getenv("COOKIE_DOMAIN")
+	ctx.SetCookie("jwt-token", *jwtToken, int(tokenExpiry.Seconds()), "/", cookieDomain, false, true)
 }
 
 func (c *AuthController) Logout(ctx *gin.Context) {
@@ -176,17 +170,15 @@ func (c *AuthController) Logout(ctx *gin.Context) {
 		return
 	}
 
-	// クッキーを削除
-	ctx.SetCookie("jwt-token", "", -1, "/", "localhost", false, true)
-
+	cookieDomain := os.Getenv("COOKIE_DOMAIN")
+	// クッキー削除
+	ctx.SetCookie("jwt-token", "", -1, "/", cookieDomain, false, true)
 	ctx.JSON(http.StatusOK, gin.H{"message": "ログアウトしました。"})
 }
 
 func (c *AuthController) GoogleLogin(ctx *gin.Context) {
 	rememberMe := ctx.Query("rememberMe")
 	state := "state-token"
-
-	// rememberMeフラグをstateに含める
 	if rememberMe == "true" {
 		state += "|rememberMe"
 	}
@@ -198,7 +190,6 @@ func (c *AuthController) GoogleLogin(ctx *gin.Context) {
 func (c *AuthController) GoogleCallback(ctx *gin.Context) {
 	state := ctx.Query("state")
 	rememberMe := false
-
 	if strings.Contains(state, "|rememberMe") {
 		rememberMe = true
 		state = strings.Replace(state, "|rememberMe", "", 1)
@@ -216,7 +207,6 @@ func (c *AuthController) GoogleCallback(ctx *gin.Context) {
 		return
 	}
 
-	// ユーザー情報を取得
 	client := c.googleOauthConfig.Client(context.Background(), token)
 	oauth2Service, err := oauth2v2.New(client)
 	if err != nil {
@@ -230,7 +220,6 @@ func (c *AuthController) GoogleCallback(ctx *gin.Context) {
 		return
 	}
 
-	// ユーザーをデータベースに作成または取得
 	user, err := c.services.FindOrCreateUserByGoogle(userinfo)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to find or create user"})
@@ -242,18 +231,17 @@ func (c *AuthController) GoogleCallback(ctx *gin.Context) {
 		return
 	}
 
-	// JWTトークンを作成
 	jwtToken, tokenExpiry, err := c.services.CreateToken(user.ID, user.Email, rememberMe)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create JWT token"})
 		return
 	}
 
-	// クッキーにトークンを設定
-	ctx.SetCookie("jwt-token", *jwtToken, int(tokenExpiry.Seconds()), "/", "localhost", false, true)
+	cookieDomain := os.Getenv("COOKIE_DOMAIN")
+	ctx.SetCookie("jwt-token", *jwtToken, int(tokenExpiry.Seconds()), "/", cookieDomain, false, true)
 
-	// フロントエンドにリダイレクト
-	ctx.Redirect(http.StatusFound, "http://localhost:3000/home")
+	frontendURL := os.Getenv("FRONTEND_URL")
+	ctx.Redirect(http.StatusFound, frontendURL+"/home")
 }
 
 func (c *AuthController) CheckAuth(ctx *gin.Context) {
@@ -263,9 +251,7 @@ func (c *AuthController) CheckAuth(ctx *gin.Context) {
 		return
 	}
 
-	// トークンを検証
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		// トークンの署名方法を検証
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
@@ -290,16 +276,13 @@ func (c *AuthController) RequestPasswordReset(ctx *gin.Context) {
 	resetToken, err := c.services.GeneratePasswordResetToken(input.Email)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			// ユーザーが存在しない場合
 			ctx.JSON(http.StatusNotFound, gin.H{"error": "そのアカウントは無効です。"})
 		} else {
-			// その他のエラー
 			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "サーバーエラーが発生しました。"})
 		}
 		return
 	}
 
-	// パスワードリセットメールを送信
 	err = c.emailService.SendPasswordResetEmail(input.Email, resetToken)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "パスワードリセットメールの送信に失敗しました"})
@@ -334,20 +317,19 @@ func (c *AuthController) ResetPassword(ctx *gin.Context) {
 		return
 	}
 
-	// パスワードリセット完了メールを送信
 	if err := c.emailService.SendPasswordResetConfirmationEmail(user.Email); err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "パスワードリセット完了メールの送信に失敗しました"})
 		return
 	}
 
-	// オプション：パスワードリセット後にユーザーをログインさせる
 	jwtToken, tokenExpiry, err := c.services.CreateToken(user.ID, user.Email, false)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "JWTトークンの作成に失敗しました"})
 		return
 	}
 
-	ctx.SetCookie("jwt-token", *jwtToken, int(tokenExpiry.Seconds()), "/", "localhost", false, true)
+	cookieDomain := os.Getenv("COOKIE_DOMAIN")
+	ctx.SetCookie("jwt-token", *jwtToken, int(tokenExpiry.Seconds()), "/", cookieDomain, false, true)
 	ctx.JSON(http.StatusOK, gin.H{"message": "パスワードがリセットされ、ログインしました。"})
 }
 
@@ -362,7 +344,6 @@ func (c *AuthController) CheckResetToken(ctx *gin.Context) {
 
 	_, err := c.services.ValidatePasswordResetToken(input.Token)
 	if err != nil {
-		// エラーの種類に応じて適切なステータスコードを返す
 		if err.Error() == "reset token has expired" {
 			ctx.JSON(http.StatusUnauthorized, gin.H{"error": "トークンの有効期限が切れています。"})
 		} else if err.Error() == "user not found" {

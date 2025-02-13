@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from 'next/navigation';
+import { BACKEND_URL } from "@/config";
 
 interface PasswordResetProps {
     params: {
@@ -20,7 +21,7 @@ const PasswordReset: React.FC<PasswordResetProps> = ({ params }) => {
     useEffect(() => {
         const validateToken = async () => {
             try {
-                const response = await fetch('http://localhost:8080/auth/CheckResetToken', {
+                const response = await fetch(`${BACKEND_URL}/auth/CheckResetToken`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -67,7 +68,7 @@ const PasswordReset: React.FC<PasswordResetProps> = ({ params }) => {
         }
 
         try {
-            const response = await fetch('http://localhost:8080/auth/ResetPassword', {
+            const response = await fetch(`${BACKEND_URL}/auth/ResetPassword`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

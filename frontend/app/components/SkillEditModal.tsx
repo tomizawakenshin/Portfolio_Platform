@@ -1,5 +1,6 @@
 "use client";
 
+import { BACKEND_URL } from "@/config";
 import React, { useEffect, useState, useRef } from "react";
 
 interface SkillEditModalProps {
@@ -32,7 +33,7 @@ const SkillEditModal: React.FC<SkillEditModalProps> = ({
 
     // スキル候補をバックエンドから取得
     useEffect(() => {
-        fetch("http://localhost:8080/options/skills", { credentials: "include" })
+        fetch(`${BACKEND_URL}/options/skills`, { credentials: "include" })
             .then((res) => res.json())
             .then((data) => {
                 setAvailableSkills(data.skills || []);

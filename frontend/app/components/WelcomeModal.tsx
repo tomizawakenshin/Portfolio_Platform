@@ -1,3 +1,4 @@
+import { BACKEND_URL } from '@/config';
 import { useRouter } from 'next/navigation';
 import React from 'react';
 
@@ -15,7 +16,7 @@ const WelcomeModal: React.FC<WelcomeModalProps> = ({ isOpen, onClose, onStart })
     }
 
     const handleLogout = () => {
-        fetch('http://localhost:8080/auth/logout', {
+        fetch(`${BACKEND_URL}/auth/logout`, {
             method: 'POST',
             credentials: 'include',
         })

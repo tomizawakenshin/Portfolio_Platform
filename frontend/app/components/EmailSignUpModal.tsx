@@ -1,5 +1,6 @@
 import { FC, useState } from "react";
 import { useRouter } from "next/navigation";
+import { BACKEND_URL } from "@/config";
 
 interface EmailSignUpModalProps {
     isOpen: boolean;
@@ -53,7 +54,7 @@ const EmailSignUpModal: FC<EmailSignUpModalProps> = ({ isOpen, onClose, onComple
         if (!valid) return;
 
         try {
-            const response = await fetch("http://localhost:8080/auth/signup", {
+            const response = await fetch(`${BACKEND_URL}/auth/signup`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

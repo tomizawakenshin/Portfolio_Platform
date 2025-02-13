@@ -1,4 +1,5 @@
 // components/LoginModal.tsx
+import { BACKEND_URL } from "@/config";
 import { useRouter } from "next/navigation";
 import React, { FC, useState } from "react";
 
@@ -41,7 +42,7 @@ const LoginModal: FC<ModalProps> = ({ isOpen, onClose, onSignUpClick, onForgotPa
         const isRememberMeChecked = (document.getElementById('rememberMeCheckbox') as HTMLInputElement)?.checked;
 
         // ログイン処理
-        fetch('http://localhost:8080/auth/login', {
+        fetch(`${BACKEND_URL}/auth/login`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -70,7 +71,7 @@ const LoginModal: FC<ModalProps> = ({ isOpen, onClose, onSignUpClick, onForgotPa
         const isRememberMeChecked = (document.getElementById('rememberMeCheckbox') as HTMLInputElement)?.checked;
 
         // バックエンドのGoogleログインエンドポイントにリダイレクト
-        window.location.href = `http://localhost:8080/auth/google/login?rememberMe=${isRememberMeChecked}`;
+        window.location.href = `${BACKEND_URL}/auth/google/login?rememberMe=${isRememberMeChecked}`;
     };
 
     return (
