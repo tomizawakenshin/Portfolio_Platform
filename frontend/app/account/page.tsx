@@ -264,6 +264,27 @@ export default function AccountPage() {
         router.push(`/Portfolio/${postId}`);
     };
 
+    const handleLogout = async () => {
+        try {
+            const response = await fetch("http://localhost:8080/auth/logout", {
+                method: "POST",
+                credentials: "include", // Cookie などを含める場合
+            });
+
+            if (!response.ok) {
+                throw new Error("ログアウトに失敗しました");
+            }
+
+            // ログアウト成功後、/auth 画面へ遷移
+            router.push("/auth");
+
+        } catch (error) {
+            console.error(error);
+            alert("ログアウト処理中にエラーが発生しました。");
+        }
+    };
+
+
     // ============================================================
     // ユーティリティ
     // ============================================================
@@ -610,15 +631,6 @@ export default function AccountPage() {
                                                         No Image
                                                     </div>
                                                 )}
-                                                <button
-                                                    className="absolute top-2 right-2 bg-white p-1 rounded-full"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        console.log("お気に入りボタンの処理");
-                                                    }}
-                                                >
-                                                    ❤️
-                                                </button>
                                             </div>
                                             <h3 className="text-lg font-semibold mt-2">{post.Title}</h3>
                                         </div>
@@ -626,15 +638,25 @@ export default function AccountPage() {
                                 })}
                             </div>
 
-                            <button
-                                onClick={handleAddWork}
-                                className="flex items-center space-x-2 px-3 py-2 
-                           rounded font-bold text-white bg-orange-500 
-                           hover:bg-orange-600 transition-colors duration-200"
-                            >
-                                <span>+ 作品を追加</span>
-                            </button>
-                        </section>
+                            {/* 「+作品を追加」ボタンとログアウトボタンを並べる例 */}
+                            <div className="flex items-center space-x-2">
+                                <button
+                                    onClick={handleAddWork}
+                                    className="flex items-center space-x-2 px-3 py-2 
+              rounded font-bold text-white bg-orange-500 
+              hover:bg-orange-600 transition-colors duration-200"
+                                >
+                                    <span>+ 作品を追加</span>
+                                </button>
+                                <button
+                                    onClick={handleLogout}
+                                    className="flex items-center space-x-2 px-3 py-2 
+              rounded font-bold text-white bg-red-500 
+              hover:bg-red-600 transition-colors duration-200"
+                                >
+                                    <span>ログアウト</span>
+                                </button>
+                            </div>                        </section>
                     </div>
                 </div>
             </main>

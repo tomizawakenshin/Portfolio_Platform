@@ -624,16 +624,6 @@ const HomePage = () => {
                                             className="w-full h-40 object-cover transition-transform duration-200 group-hover:scale-105"
                                         />
                                     )}
-                                    {/* お気に入りボタン */}
-                                    <button
-                                        className="absolute top-2 right-2 bg-white p-1 rounded-full"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            console.log("お気に入りボタンの処理");
-                                        }}
-                                    >
-                                        ❤️
-                                    </button>
                                 </div>
 
                                 <h3 className="text-lg font-semibold mt-2">{post.Title}</h3>
