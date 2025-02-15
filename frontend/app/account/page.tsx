@@ -266,7 +266,7 @@ export default function AccountPage() {
 
     const handleLogout = async () => {
         try {
-            const response = await fetch("http://localhost:8080/auth/logout", {
+            const response = await fetch(`${BACKEND_URL}/auth/logout`, {
                 method: "POST",
                 credentials: "include", // Cookie などを含める場合
             });
