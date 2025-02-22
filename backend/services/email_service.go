@@ -22,19 +22,18 @@ func NewEmailService() IEmailService {
 	return &EmailService{}
 }
 
-// SendRegistrationEmail は仮登録メールを送信します。
 func (s *EmailService) SendRegistrationEmail(to string, verificationToken string) error {
-	from := "info@login-go.app" // 送信元アドレス
-
-	// BACKEND_URL を環境変数から取得（未設定ならデフォルト値）
+	// 環境変数から必要な情報を取得
 	backendURL := os.Getenv("BACKEND_URL")
-
-	// SMTP_HOST, SMTP_PORT を環境変数から取得（未設定ならデフォルト値）
 	smtpHost := os.Getenv("SMTP_HOST")
 	smtpPort := os.Getenv("SMTP_PORT")
+	smtpUsername := os.Getenv("SMTP_USERNAME")
+	smtpPassword := os.Getenv("SMTP_PASSWORD")
+
+	// 送信元は SMTP_USERNAME を利用
+	from := smtpUsername
 
 	subject := "ReDesigner for Student 仮登録"
-	// verificationLink を BACKEND_URL から動的に組み立て
 	verificationLink := fmt.Sprintf("%s/auth/verify?token=%s", backendURL, verificationToken)
 	body := fmt.Sprintf(`
     <html>
@@ -56,22 +55,26 @@ func (s *EmailService) SendRegistrationEmail(to string, verificationToken string
 		"Content-Type: text/html; charset=\"UTF-8\";\r\n" +
 		"\r\n" + body + "\r\n")
 
-	return smtp.SendMail(smtpHost+":"+smtpPort, nil, from, []string{to}, message)
+	// SMTP認証情報の設定
+	auth := smtp.PlainAuth("", smtpUsername, smtpPassword, smtpHost)
+
+	// SMTPサーバーに接続してメール送信
+	return smtp.SendMail(smtpHost+":"+smtpPort, auth, from, []string{to}, message)
 }
 
 // SendPasswordResetEmail はパスワードリセットの案内メールを送信します。
 func (s *EmailService) SendPasswordResetEmail(to string, resetToken string) error {
-	from := "info@login-go.app"
-
-	// FRONTEND_URL を環境変数から取得（未設定ならデフォルト値）
-	frontendURL := os.Getenv("FRONTEND_URL")
-
-	// SMTP_HOST, SMTP_PORT を環境変数から取得
+	// 環境変数から必要な情報を取得
 	smtpHost := os.Getenv("SMTP_HOST")
 	smtpPort := os.Getenv("SMTP_PORT")
+	smtpUsername := os.Getenv("SMTP_USERNAME")
+	smtpPassword := os.Getenv("SMTP_PASSWORD")
+	frontendURL := os.Getenv("FRONTEND_URL")
+
+	// 送信元は SMTP_USERNAME を利用
+	from := smtpUsername
 
 	subject := "パスワードリセットのご案内"
-	// リセットリンクを FRONTEND_URL から組み立てる
 	resetLink := fmt.Sprintf("%s/PasswordReset/%s", frontendURL, resetToken)
 	body := fmt.Sprintf(`
     <html>
@@ -92,15 +95,21 @@ func (s *EmailService) SendPasswordResetEmail(to string, resetToken string) erro
 		"Content-Type: text/html; charset=\"UTF-8\";\r\n" +
 		"\r\n" + body + "\r\n")
 
-	return smtp.SendMail(smtpHost+":"+smtpPort, nil, from, []string{to}, message)
+	// SMTP認証情報の設定
+	auth := smtp.PlainAuth("", smtpUsername, smtpPassword, smtpHost)
+
+	return smtp.SendMail(smtpHost+":"+smtpPort, auth, from, []string{to}, message)
 }
 
-// SendWelcomeEmail は歓迎メールを送信します。
 func (s *EmailService) SendWelcomeEmail(to string) error {
-	from := "info@login-go.app"
-
+	// 環境変数から必要な情報を取得
 	smtpHost := os.Getenv("SMTP_HOST")
 	smtpPort := os.Getenv("SMTP_PORT")
+	smtpUsername := os.Getenv("SMTP_USERNAME")
+	smtpPassword := os.Getenv("SMTP_PASSWORD")
+
+	// 送信元は SMTP_USERNAME を利用
+	from := smtpUsername
 
 	subject := "ReDesigner for Student へようこそ！"
 	body := `
@@ -111,7 +120,6 @@ func (s *EmailService) SendWelcomeEmail(to string) error {
             <p>この度はご登録ありがとうございます！ReDesigner for Studentは「デザイナーを目指す、すべての学生のためのプラットフォーム」です。</p>
             <p>デザイナーを大切にしている企業のインターンや本採用の情報を集めたり、他大学の学生ポートフォリオを見たりと、デザインを学ぶことから本格的な就職活動をすることまで、さまざまなシーンでご利用いただけます！</p>
             <p>プロフィールや作品をアップすることによって、企業の人たちがあなたを見つけることができるようになります。ぜひあなたのことを、あなたの作品や言葉で教えてくださいね。</p>
-            <p>作品をきっかけにあなたと企業がつながり、そこから得たフィードバックがあなたを支える。そんな出会いをお届けできたら、私たちも嬉しいです。</p>
         </div>
     </body>
     </html>
@@ -123,15 +131,22 @@ func (s *EmailService) SendWelcomeEmail(to string) error {
 		"Content-Type: text/html; charset=\"UTF-8\";\r\n" +
 		"\r\n" + body + "\r\n")
 
-	return smtp.SendMail(smtpHost+":"+smtpPort, nil, from, []string{to}, message)
+	// SMTP認証情報の設定
+	auth := smtp.PlainAuth("", smtpUsername, smtpPassword, smtpHost)
+
+	return smtp.SendMail(smtpHost+":"+smtpPort, auth, from, []string{to}, message)
 }
 
 // SendPasswordResetConfirmationEmail はパスワード変更完了のお知らせメールを送信します。
 func (s *EmailService) SendPasswordResetConfirmationEmail(to string) error {
-	from := "info@login-go.app"
-
+	// 環境変数から必要な情報を取得
 	smtpHost := os.Getenv("SMTP_HOST")
 	smtpPort := os.Getenv("SMTP_PORT")
+	smtpUsername := os.Getenv("SMTP_USERNAME")
+	smtpPassword := os.Getenv("SMTP_PASSWORD")
+
+	// 送信元は SMTP_USERNAME を利用
+	from := smtpUsername
 
 	subject := "パスワード変更完了のお知らせ"
 	body := fmt.Sprintf(`
@@ -155,5 +170,8 @@ func (s *EmailService) SendPasswordResetConfirmationEmail(to string) error {
 		"Content-Type: text/html; charset=\"UTF-8\";\r\n" +
 		"\r\n" + body + "\r\n")
 
-	return smtp.SendMail(smtpHost+":"+smtpPort, nil, from, []string{to}, message)
+	// SMTP認証情報の設定
+	auth := smtp.PlainAuth("", smtpUsername, smtpPassword, smtpHost)
+
+	return smtp.SendMail(smtpHost+":"+smtpPort, auth, from, []string{to}, message)
 }
