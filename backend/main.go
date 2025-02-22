@@ -56,7 +56,7 @@ func setupRouter(db *gorm.DB, authService services.IAuthService) *gin.Engine {
 	authRouter := r.Group("/auth")
 	authRouter.POST("/signup", authController.SignUp)
 	authRouter.POST("/login", authController.Login)
-	authRouter.GET("/verify", authController.VerifyAccount)
+	authRouter.POST("/verify", authController.VerifyAccount)
 
 	// Google OAuth 2.0認証のエンドポイント
 	authRouter.GET("/google/login", authController.GoogleLogin)

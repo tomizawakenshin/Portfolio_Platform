@@ -102,13 +102,16 @@ func generateVerificationToken() string {
 }
 
 func (c *AuthController) VerifyAccount(ctx *gin.Context) {
-	token := ctx.Query("token")
-	if token == "" {
+	var req struct {
+		Token string `json:"token"`
+	}
+	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Token is required"})
 		return
 	}
 
-	user, err := c.services.VerifyUser(token)
+	// ここで req.Token を使う
+	user, err := c.services.VerifyUser(req.Token)
 	if err != nil {
 		frontendURL := os.Getenv("FRONTEND_URL")
 		switch err {
@@ -138,8 +141,11 @@ func (c *AuthController) VerifyAccount(ctx *gin.Context) {
 	cookieDomain := os.Getenv("COOKIE_DOMAIN")
 	ctx.SetCookie("jwt-token", *jwtToken, int(tokenExpiry.Seconds()), "/", cookieDomain, false, true)
 
-	frontendURL := os.Getenv("FRONTEND_URL")
-	ctx.Redirect(http.StatusFound, frontendURL+"/home")
+	// 成功時の例
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": "本登録が完了しました。",
+	})
+
 }
 
 func (c *AuthController) Login(ctx *gin.Context) {

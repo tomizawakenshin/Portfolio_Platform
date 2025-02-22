@@ -24,7 +24,7 @@ func NewEmailService() IEmailService {
 
 func (s *EmailService) SendRegistrationEmail(to string, verificationToken string) error {
 	// 環境変数から必要な情報を取得
-	backendURL := os.Getenv("BACKEND_URL")
+	frontendURL := os.Getenv("FRONTEND_URL")
 	smtpHost := os.Getenv("SMTP_HOST")
 	smtpPort := os.Getenv("SMTP_PORT")
 	smtpUsername := os.Getenv("SMTP_USERNAME")
@@ -34,7 +34,7 @@ func (s *EmailService) SendRegistrationEmail(to string, verificationToken string
 	from := smtpUsername
 
 	subject := "エンジニアのポートフォリオ 仮登録"
-	verificationLink := fmt.Sprintf("%s/auth/verify?token=%s", backendURL, verificationToken)
+	verificationLink := fmt.Sprintf("%s/verifyStart?token=%s", frontendURL, verificationToken)
 	body := fmt.Sprintf(`
     <html>
     <body>
