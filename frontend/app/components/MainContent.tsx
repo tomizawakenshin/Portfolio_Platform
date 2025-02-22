@@ -7,9 +7,9 @@ interface MainContentProps {
 const MainContent: React.FC<MainContentProps> = ({ onFreeStartClick, onLoginClick }) => {
     return (
         <section className="flex flex-col items-center justify-center min-h-screen bg-gray-50">
-            <h1 className="text-5xl font-bold text-gray-900">タイトル（仮）</h1>
+            <h1 className="text-5xl font-bold text-gray-900">エンジニアのポートフォリオ</h1>
             <p className="mt-4 text-xl text-gray-600 text-center">
-                このサイトに関しての簡単な説明（仮）
+                このサイトはエンジニアのためのポートフォリオプラットフォームです。
             </p>
             <div className="mt-8 flex space-x-4">
                 <button

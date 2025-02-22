@@ -49,14 +49,9 @@ const SignUpModal: FC<SignUpModalProps> = ({ isOpen, onClose, onLoginClick, onEm
                 <h2 className="text-xl font-bold mb-4">新規登録</h2>
                 <div className="border border-gray-300 p-4 rounded mb-4">
                     <p className="text-gray-600 mb-4">
-                        このフォームではお客様の名前やメールアドレスなどの個人情報を収集いたします。
-                        これらの情報は「個人情報の取り扱いについて」に記載された利用目的の範囲内で使用いたします。
-                        <ul className="list-disc list-inside text-sm mt-2 mb-4">
-                            <li>基本的な利用目的</li>
-                            <li>当社とのお取引・当社サービス全般に関連して取得した個人情報の利用目的</li>
-                        </ul>
-                        詳しくは、ReDesignerの <a href="#" className="text-orange-500 underline">個人情報の取り扱いについて</a>、
-                        <a href="#" className="text-orange-500 underline">利用規約</a>をご確認いただき、同意いただいた上で送信をお願いいたします。
+                        このフォームでは、ご利用に必要な最小限の個人情報のみをご入力いただきます。<br />
+                        入力いただいた情報は、厳重に管理されます。<br />
+                        ご登録の際は、上記内容にご同意いただいた上で送信してください。
                     </p>
                 </div>
                 <div className="flex items-center mb-4 cursor-pointer">
@@ -75,7 +70,7 @@ const SignUpModal: FC<SignUpModalProps> = ({ isOpen, onClose, onLoginClick, onEm
                     disabled={!isAgreed}
                     onClick={handleGoogleSignUpClick}
                 >
-                    <span className="mr-2">G</span>Googleで登録
+                    <span className="mr-2"></span>Googleで登録
                 </button>
                 <div className="text-center mb-4 text-gray-600">または</div>
                 <button

@@ -8,12 +8,19 @@ interface EmailSignUpModalProps {
     onComplete: (email: string) => void;
 }
 
-const EmailSignUpModal: FC<EmailSignUpModalProps> = ({ isOpen, onClose, onComplete }) => {
+const EmailSignUpModal: FC<EmailSignUpModalProps> = ({
+    isOpen,
+    onClose,
+    onComplete,
+}) => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [emailError, setEmailError] = useState("");
     const [passwordError, setPasswordError] = useState("");
     const [serverError, setServerError] = useState("");
+
+    // ▼追加: ローディング状態を管理
+    const [isLoading, setIsLoading] = useState(false);
 
     const router = useRouter();
 
@@ -54,12 +61,15 @@ const EmailSignUpModal: FC<EmailSignUpModalProps> = ({ isOpen, onClose, onComple
         if (!valid) return;
 
         try {
+            // ▼通信開始 → ローディング状態true
+            setIsLoading(true);
+
             const response = await fetch(`${BACKEND_URL}/auth/signup`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
-                credentials: 'include', // クッキーを含める
+                credentials: "include", // クッキーを含める
                 body: JSON.stringify({ email, password }),
             });
 
@@ -79,6 +89,9 @@ const EmailSignUpModal: FC<EmailSignUpModalProps> = ({ isOpen, onClose, onComple
         } catch (error) {
             console.error("Error during signup:", error);
             setServerError("サーバーエラーが発生しました。");
+        } finally {
+            // ▼通信終了 → ローディング状態false
+            setIsLoading(false);
         }
     };
 
@@ -121,15 +134,23 @@ const EmailSignUpModal: FC<EmailSignUpModalProps> = ({ isOpen, onClose, onComple
                 {passwordError && (
                     <p className="text-red-500 mb-4 text-sm">{passwordError}</p>
                 )}
+
+                {/* ▼ローディング中はボタンを押せない & テキスト変更 */}
                 <button
-                    className="w-full py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600"
+                    className={`w-full py-2 text-white rounded-md ${isLoading
+                            ? "bg-gray-400 cursor-not-allowed"
+                            : "bg-orange-500 hover:bg-orange-600"
+                        }`}
                     onClick={handleSubmit}
+                    disabled={isLoading}
                 >
-                    登録する
+                    {isLoading ? "登録中..." : "登録する"}
                 </button>
+
                 <button
                     className="w-full py-2 mt-4 text-red-500"
                     onClick={onClose}
+                    disabled={isLoading}
                 >
                     戻る
                 </button>

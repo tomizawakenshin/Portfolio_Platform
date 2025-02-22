@@ -33,15 +33,15 @@ func (s *EmailService) SendRegistrationEmail(to string, verificationToken string
 	// 送信元は SMTP_USERNAME を利用
 	from := smtpUsername
 
-	subject := "ReDesigner for Student 仮登録"
+	subject := "エンジニアのポートフォリオ 仮登録"
 	verificationLink := fmt.Sprintf("%s/auth/verify?token=%s", backendURL, verificationToken)
 	body := fmt.Sprintf(`
     <html>
     <body>
         <div style="font-family: Arial, sans-serif; color: #333;">
-            <h2 style="color: #F15A24;">ReDesigner for Student</h2>
+            <h2 style="color: #F15A24;">エンジニアのポートフォリオ</h2>
             <p>こんにちは、</p>
-            <p>ReDesigner for Studentへの仮登録を受け付けました。</p>
+            <p>エンジニアのポートフォリオへの仮登録を受け付けました。</p>
             <p>下記のボタンをクリックして、本登録を完了させてください。</p>
             <a href="%s" style="padding: 10px 20px; background-color: #F15A24; color: #fff; text-decoration: none; border-radius: 5px;">本登録を完了する</a>
             <p>このリンクの有効期限は<strong>7日間</strong>です。</p>
@@ -111,15 +111,15 @@ func (s *EmailService) SendWelcomeEmail(to string) error {
 	// 送信元は SMTP_USERNAME を利用
 	from := smtpUsername
 
-	subject := "ReDesigner for Student へようこそ！"
+	subject := "エンジニアのポートフォリオ へようこそ！"
 	body := `
     <html>
     <body>
         <div style="font-family: Arial, sans-serif; color: #333;">
-            <h2>ReDesigner for Student へようこそ！</h2>
-            <p>この度はご登録ありがとうございます！ReDesigner for Studentは「デザイナーを目指す、すべての学生のためのプラットフォーム」です。</p>
-            <p>デザイナーを大切にしている企業のインターンや本採用の情報を集めたり、他大学の学生ポートフォリオを見たりと、デザインを学ぶことから本格的な就職活動をすることまで、さまざまなシーンでご利用いただけます！</p>
-            <p>プロフィールや作品をアップすることによって、企業の人たちがあなたを見つけることができるようになります。ぜひあなたのことを、あなたの作品や言葉で教えてくださいね。</p>
+            <h2>エンジニアのポートフォリオ へようこそ！</h2>
+            <p>この度はご登録ありがとうございます！エンジニアのポートフォリオは「エンジニアを目指す、すべての学生のためのプラットフォーム」です。</p>
+            <p>他大学の学生ポートフォリオを見ることで本格的な就職活動でご利用いただけます！</p>
+            <p>プロフィールや作品をアップすることによって、企業の人たちがあなたを見つけることができるようになるかもしれません。ぜひあなたのことを、あなたの作品や言葉で教えてくださいね。</p>
         </div>
     </body>
     </html>
