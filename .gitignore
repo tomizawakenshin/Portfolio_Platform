@@ -1,0 +1,8 @@
+# .envファイルを無視
+/backend/.env
+
+# .env.testファイルを無視
+.env.test
+
+/docker
+/docs

@@ -3,8 +3,8 @@
 package controllers
 
 import (
+	domainUser "backend/domain/user"
 	"backend/dto"
-	"backend/models"
 	"backend/services"
 	"mime/multipart"
 	"net/http"
@@ -33,7 +33,7 @@ func (c *UserController) GetUserInfo(ctx *gin.Context) {
 		return
 	}
 
-	userID := user.(*models.User).ID
+	userID := user.(*domainUser.UserModel).ID
 
 	// ユーザー情報を取得
 	user, err := c.userService.GetUserByID(userID)
@@ -54,7 +54,7 @@ func (c *UserController) UpdateMinimumUserInfo(ctx *gin.Context) {
 		ctx.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
-	currentUser := user.(*models.User)
+	currentUser := user.(*domainUser.UserModel)
 
 	var input dto.MinimumUserInfoInput
 	var fileHeaders []*multipart.FileHeader

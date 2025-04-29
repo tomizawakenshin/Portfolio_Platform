@@ -129,6 +129,7 @@ const HomePage = () => {
         fetch(`${BACKEND_URL}/Portfolio/getAllPosts`, { credentials: 'include' })
             .then(res => res.json())
             .then(data => {
+                console.log(data.portfolio);
                 setPortfolio(data.portfolio);
             })
             .catch(err => console.error(err));

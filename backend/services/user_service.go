@@ -3,9 +3,8 @@
 package services
 
 import (
+	domainUser "backend/domain/user"
 	"backend/dto"
-	"backend/models"
-	"backend/repositories"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -14,27 +13,23 @@ import (
 )
 
 type IUserService interface {
-	GetUserByID(userID uint) (*models.User, error)
-	UpdateMinimumUserInfo(userID uint, input dto.MinimumUserInfoInput, files []*multipart.FileHeader) (*models.User, error)
+	GetUserByID(userID uint) (*domainUser.UserModel, error)
+	UpdateMinimumUserInfo(userID uint, input dto.MinimumUserInfoInput, files []*multipart.FileHeader) (*domainUser.UserModel, error)
 }
 
 type UserService struct {
-	repository     repositories.IUserRepository
-	authRepository repositories.IAuthRepository
+	repository domainUser.IUserRepository
 }
 
-func NewUserService(repository repositories.IUserRepository, authRepository repositories.IAuthRepository) IUserService {
-	return &UserService{
-		repository:     repository,
-		authRepository: authRepository,
-	}
+func NewUserService(repository domainUser.IUserRepository) IUserService {
+	return &UserService{repository: repository}
 }
 
-func (s *UserService) GetUserByID(userID uint) (*models.User, error) {
+func (s *UserService) GetUserByID(userID uint) (*domainUser.UserModel, error) {
 	return s.repository.FindByID(userID)
 }
 
-func (s *UserService) UpdateMinimumUserInfo(userID uint, input dto.MinimumUserInfoInput, files []*multipart.FileHeader) (*models.User, error) {
+func (s *UserService) UpdateMinimumUserInfo(userID uint, input dto.MinimumUserInfoInput, files []*multipart.FileHeader) (*domainUser.UserModel, error) {
 	// DBからユーザーを取得
 	user, err := s.repository.FindByID(userID)
 	if err != nil {

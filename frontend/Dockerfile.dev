@@ -1,0 +1,17 @@
+# frontend/Dockerfile.dev
+FROM node:23-alpine
+
+WORKDIR /app
+
+# 依存を先にインストール（キャッシュが効きやすい）
+COPY package.json package-lock.json ./
+RUN npm ci
+
+# ソースをコピー（開発時はボリュームマウントするのでイメージ内は初回のみ有効）
+COPY . .
+
+# 開発サーバー用ポート
+EXPOSE 3000
+
+# hot-reload付き開発サーバー起動
+CMD ["npm", "run", "dev"]

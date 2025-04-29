@@ -60,6 +60,7 @@ const PortfolioPage = () => {
                 return res.json();
             })
             .then((data) => {
+                console.log(data);
                 setPost(data.post);
             })
             .catch((error) => {

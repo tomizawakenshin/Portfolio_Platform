@@ -1,8 +1,8 @@
 package controllers
 
 import (
+	domainUser "backend/domain/user"
 	"backend/dto"
-	"backend/models"
 	"backend/services"
 	"net/http"
 	"strconv"
@@ -31,7 +31,7 @@ func (c *PortfolioController) CreatePost(ctx *gin.Context) {
 		ctx.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
-	currentUser := user.(*models.User)
+	currentUser := user.(*domainUser.UserModel)
 
 	// 1) まずmultipartをパース
 	if err := ctx.Request.ParseMultipartForm(32 << 20); err != nil {
@@ -56,11 +56,11 @@ func (c *PortfolioController) CreatePost(ctx *gin.Context) {
 	// 4) サービスに「DTO + 画像ファイル群 + userID」を渡す
 	err := c.portfolioService.CreatePost(input, fileHeaders, currentUser.ID)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create post"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"message": "Post created successfully"})
+	ctx.JSON(http.StatusCreated, gin.H{"message": "Post created successfully"})
 }
 
 func (c *PortfolioController) GetPostsByUserID(ctx *gin.Context) {
@@ -70,7 +70,7 @@ func (c *PortfolioController) GetPostsByUserID(ctx *gin.Context) {
 		ctx.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
-	currentUser := user.(*models.User)
+	currentUser := user.(*domainUser.UserModel)
 
 	// サービスを呼び出して投稿一覧を取得
 	posts, err := c.portfolioService.GetPostsByUserID(currentUser.ID)

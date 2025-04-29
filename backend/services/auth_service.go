@@ -1,8 +1,7 @@
 package services
 
 import (
-	"backend/models"
-	"backend/repositories"
+	domainUser "backend/domain/user"
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
@@ -22,22 +21,23 @@ type IAuthService interface {
 	SignUp(email string, password string, verificationToken string) error
 	Login(email string, password string, rememberMe bool) (*string, time.Duration, error)
 	Logout(ctx *gin.Context) error
-	GetUserFromToken(tokenString string) (*models.User, error)
-	VerifyUser(token string) (*models.User, error)
+	GetUserFromToken(tokenString string) (*domainUser.UserModel, error)
+	VerifyUser(token string) (*domainUser.UserModel, error)
 	CreateToken(userId uint, email string, rememberMe bool) (*string, time.Duration, error)
 	SoftDeleteUnverifiedUsers() error
 	PermanentlyDeleteUsers() error
-	FindOrCreateUserByGoogle(userinfo *oauth2Google.Userinfo) (*models.User, error)
+	FindOrCreateUserByGoogle(userinfo *oauth2Google.Userinfo) (*domainUser.UserModel, error)
 	GeneratePasswordResetToken(email string) (string, error)
-	ValidatePasswordResetToken(token string) (*models.User, error)
-	UpdatePassword(user *models.User, newPassword string) error
+	ValidatePasswordResetToken(token string) (*domainUser.UserModel, error)
+	UpdatePassword(user *domainUser.UserModel, newPassword string) error
 }
 
 type AuthService struct {
-	repository repositories.IAuthRepository
+	// repository repositories.IAuthRepository
+	repository domainUser.IUserRepository
 }
 
-func NewAuthService(repository repositories.IAuthRepository) IAuthService {
+func NewAuthService(repository domainUser.IUserRepository) IAuthService {
 	return &AuthService{repository: repository}
 }
 
@@ -62,18 +62,17 @@ func (s *AuthService) SignUp(email string, password string, verificationToken st
 	}
 
 	hashedPasswordStr := string(hashedPassword)
-	user := models.User{
-		Email:                 email,
-		Password:              &hashedPasswordStr,
-		IsVerified:            false,
-		VerificationToken:     &verificationToken,
-		VerificationExpiresAt: time.Now().Add(7 * 24 * time.Hour),
+	user, err := domainUser.NewUser(email, hashedPasswordStr)
+	if err != nil {
+		return err
 	}
+	user.VerificationToken = &verificationToken
+	user.VerificationExpiresAt = time.Now().Add(7 * 24 * time.Hour)
 
 	return s.repository.CreateUser(user)
 }
 
-func (s *AuthService) VerifyUser(token string) (*models.User, error) {
+func (s *AuthService) VerifyUser(token string) (*domainUser.UserModel, error) {
 	user, err := s.repository.FindUserByVerificationToken(token)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -82,20 +81,11 @@ func (s *AuthService) VerifyUser(token string) (*models.User, error) {
 		return nil, err
 	}
 
-	// トークンの有効期限を確認
-	if time.Now().After(user.VerificationExpiresAt) {
-		return nil, ErrVerificationTokenExpired
+	// ドメイン層の検証ロジックを使う
+	if err := user.VerifyEmail(token); err != nil {
+		// 既に認証済み or トークン不正 などはここでエラーとして返してくれる
+		return nil, err
 	}
-
-	// 既に本登録済みの場合
-	if user.IsVerified {
-		return nil, ErrUserAlreadyVerified
-	}
-
-	// isVerifiedをtrueに更新
-	user.IsVerified = true
-	user.VerificationToken = nil             // トークンはクリアする
-	user.VerificationExpiresAt = time.Time{} // 有効期限をクリア
 
 	if err := s.repository.UpdateUser(user); err != nil {
 		return nil, err
@@ -149,7 +139,7 @@ func (s *AuthService) CreateToken(userId uint, email string, rememberMe bool) (*
 	return &tokenString, tokenExpiry, nil
 }
 
-func (s *AuthService) GetUserFromToken(tokenString string) (*models.User, error) {
+func (s *AuthService) GetUserFromToken(tokenString string) (*domainUser.UserModel, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
@@ -159,7 +149,7 @@ func (s *AuthService) GetUserFromToken(tokenString string) (*models.User, error)
 	if err != nil {
 		return nil, err
 	}
-	var user *models.User
+	var user *domainUser.UserModel
 	if claims, ok := token.Claims.(jwt.MapClaims); ok {
 		if float64(time.Now().Unix()) > claims["exp"].(float64) {
 			return nil, jwt.ErrTokenExpired
@@ -190,20 +180,20 @@ func (s *AuthService) PermanentlyDeleteUsers() error {
 	return s.repository.PermanentlyDeleteUsersBefore(cutoffTime)
 }
 
-func (s *AuthService) FindOrCreateUserByGoogle(userinfo *oauth2Google.Userinfo) (*models.User, error) {
+func (s *AuthService) FindOrCreateUserByGoogle(userinfo *oauth2Google.Userinfo) (*domainUser.UserModel, error) {
 	// メールアドレスでユーザーを検索
 	user, err := s.repository.FindUserByEmail(userinfo.Email)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			// ユーザーが存在しない場合、新規作成
-			user = &models.User{
+			user = &domainUser.UserModel{
 				Email:      userinfo.Email,
 				FirstName:  "",
 				LastName:   "",
 				IsVerified: true,
 				Password:   nil,
 			}
-			if err := s.repository.CreateUser(*user); err != nil {
+			if err := s.repository.CreateUser(user); err != nil {
 				return nil, err
 			}
 		} else {
@@ -228,10 +218,13 @@ func (s *AuthService) GeneratePasswordResetToken(email string) (string, error) {
 		return "", err
 	}
 	resetToken := hex.EncodeToString(tokenBytes)
+	expiresAt := time.Now().Add(time.Hour)
+
+	user.RequestPasswordReset(resetToken, expiresAt)
 
 	// トークンと有効期限を設定（例：1時間後に有効期限切れ）
-	user.PasswordResetToken = resetToken
-	user.PasswordResetExpires = time.Now().Add(time.Hour)
+	// user.PasswordResetToken = resetToken
+	// user.PasswordResetExpires = time.Now().Add(time.Hour)
 
 	// 新しいトークンでユーザーを保存
 	err = s.repository.UpdateUser(user)
@@ -242,7 +235,7 @@ func (s *AuthService) GeneratePasswordResetToken(email string) (string, error) {
 	return resetToken, nil
 }
 
-func (s *AuthService) ValidatePasswordResetToken(token string) (*models.User, error) {
+func (s *AuthService) ValidatePasswordResetToken(token string) (*domainUser.UserModel, error) {
 	user, err := s.repository.FindUserByPasswordResetToken(token)
 	if err != nil {
 		return nil, err
@@ -256,7 +249,7 @@ func (s *AuthService) ValidatePasswordResetToken(token string) (*models.User, er
 	return user, nil
 }
 
-func (s *AuthService) UpdatePassword(user *models.User, newPassword string) error {
+func (s *AuthService) UpdatePassword(user *domainUser.UserModel, newPassword string) error {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
 	if err != nil {
 		return err

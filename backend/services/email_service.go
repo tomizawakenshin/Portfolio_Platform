@@ -22,16 +22,30 @@ func NewEmailService() IEmailService {
 	return &EmailService{}
 }
 
-func (s *EmailService) SendRegistrationEmail(to string, verificationToken string) error {
-	// 環境変数から必要な情報を取得
-	frontendURL := os.Getenv("FRONTEND_URL")
-	smtpHost := os.Getenv("SMTP_HOST")
-	smtpPort := os.Getenv("SMTP_PORT")
-	smtpUsername := os.Getenv("SMTP_USERNAME")
-	smtpPassword := os.Getenv("SMTP_PASSWORD")
+// SMTP 設定を環境変数から取得するヘルパー
+func getSMTPConfig() (host, port string, auth smtp.Auth) {
+	env := os.Getenv("ENV")
+	if env != "prod" {
+		// 開発環境 → MailHog
+		host = os.Getenv("MAILHOG_HOST")
+		port = os.Getenv("MAILHOG_PORT")
+		auth = nil // MailHog は認証不要
+	} else {
+		// 本番環境 → SMTP(Gmail 等)
+		host = os.Getenv("SMTP_HOST")
+		port = os.Getenv("SMTP_PORT")
 
-	// 送信元は SMTP_USERNAME を利用
-	from := smtpUsername
+		username := os.Getenv("SMTP_USERNAME")
+		password := os.Getenv("SMTP_PASSWORD")
+		// 認証情報を作成（コメントアウトせず残しておく）
+		auth = smtp.PlainAuth("", username, password, host)
+	}
+	return
+}
+
+func (s *EmailService) SendRegistrationEmail(to string, verificationToken string) error {
+	frontendURL := os.Getenv("FRONTEND_URL")
+	from := os.Getenv("SMTP_USERNAME")
 
 	subject := "エンジニアのポートフォリオ 仮登録"
 	verificationLink := fmt.Sprintf("%s/verifyStart?token=%s", frontendURL, verificationToken)
@@ -41,8 +55,8 @@ func (s *EmailService) SendRegistrationEmail(to string, verificationToken string
         <div style="font-family: Arial, sans-serif; color: #333;">
             <h2 style="color: #F15A24;">エンジニアのポートフォリオ</h2>
             <p>こんにちは、</p>
-            <p>エンジニアのポートフォリオへの仮登録を受け付けました。</p>
-            <p>下記のボタンをクリックして、本登録を完了させてください。</p>
+            <p>エンジニアのポートフォリオへの仮登録を受け付けました</p>
+            <p>下記のボタンをクリックして本登録を完了させてください。</p>
             <a href="%s" style="padding: 10px 20px; background-color: #F15A24; color: #fff; text-decoration: none; border-radius: 5px;">本登録を完了する</a>
             <p>このリンクの有効期限は<strong>7日間</strong>です。</p>
         </div>
@@ -55,24 +69,15 @@ func (s *EmailService) SendRegistrationEmail(to string, verificationToken string
 		"Content-Type: text/html; charset=\"UTF-8\";\r\n" +
 		"\r\n" + body + "\r\n")
 
-	// SMTP認証情報の設定
-	auth := smtp.PlainAuth("", smtpUsername, smtpPassword, smtpHost)
-
-	// SMTPサーバーに接続してメール送信
-	return smtp.SendMail(smtpHost+":"+smtpPort, auth, from, []string{to}, message)
+	host, port, auth := getSMTPConfig()
+	addr := fmt.Sprintf("%s:%s", host, port)
+	return smtp.SendMail(addr, auth, from, []string{to}, message)
 }
 
 // SendPasswordResetEmail はパスワードリセットの案内メールを送信します。
 func (s *EmailService) SendPasswordResetEmail(to string, resetToken string) error {
-	// 環境変数から必要な情報を取得
-	smtpHost := os.Getenv("SMTP_HOST")
-	smtpPort := os.Getenv("SMTP_PORT")
-	smtpUsername := os.Getenv("SMTP_USERNAME")
-	smtpPassword := os.Getenv("SMTP_PASSWORD")
 	frontendURL := os.Getenv("FRONTEND_URL")
-
-	// 送信元は SMTP_USERNAME を利用
-	from := smtpUsername
+	from := os.Getenv("SMTP_USERNAME")
 
 	subject := "パスワードリセットのご案内"
 	resetLink := fmt.Sprintf("%s/PasswordReset/%s", frontendURL, resetToken)
@@ -95,21 +100,13 @@ func (s *EmailService) SendPasswordResetEmail(to string, resetToken string) erro
 		"Content-Type: text/html; charset=\"UTF-8\";\r\n" +
 		"\r\n" + body + "\r\n")
 
-	// SMTP認証情報の設定
-	auth := smtp.PlainAuth("", smtpUsername, smtpPassword, smtpHost)
-
-	return smtp.SendMail(smtpHost+":"+smtpPort, auth, from, []string{to}, message)
+	host, port, auth := getSMTPConfig()
+	addr := fmt.Sprintf("%s:%s", host, port)
+	return smtp.SendMail(addr, auth, from, []string{to}, message)
 }
 
 func (s *EmailService) SendWelcomeEmail(to string) error {
-	// 環境変数から必要な情報を取得
-	smtpHost := os.Getenv("SMTP_HOST")
-	smtpPort := os.Getenv("SMTP_PORT")
-	smtpUsername := os.Getenv("SMTP_USERNAME")
-	smtpPassword := os.Getenv("SMTP_PASSWORD")
-
-	// 送信元は SMTP_USERNAME を利用
-	from := smtpUsername
+	from := os.Getenv("SMTP_USERNAME")
 
 	subject := "エンジニアのポートフォリオ へようこそ！"
 	body := `
@@ -131,22 +128,14 @@ func (s *EmailService) SendWelcomeEmail(to string) error {
 		"Content-Type: text/html; charset=\"UTF-8\";\r\n" +
 		"\r\n" + body + "\r\n")
 
-	// SMTP認証情報の設定
-	auth := smtp.PlainAuth("", smtpUsername, smtpPassword, smtpHost)
-
-	return smtp.SendMail(smtpHost+":"+smtpPort, auth, from, []string{to}, message)
+	host, port, auth := getSMTPConfig()
+	addr := fmt.Sprintf("%s:%s", host, port)
+	return smtp.SendMail(addr, auth, from, []string{to}, message)
 }
 
 // SendPasswordResetConfirmationEmail はパスワード変更完了のお知らせメールを送信します。
 func (s *EmailService) SendPasswordResetConfirmationEmail(to string) error {
-	// 環境変数から必要な情報を取得
-	smtpHost := os.Getenv("SMTP_HOST")
-	smtpPort := os.Getenv("SMTP_PORT")
-	smtpUsername := os.Getenv("SMTP_USERNAME")
-	smtpPassword := os.Getenv("SMTP_PASSWORD")
-
-	// 送信元は SMTP_USERNAME を利用
-	from := smtpUsername
+	from := os.Getenv("SMTP_USERNAME")
 
 	subject := "パスワード変更完了のお知らせ"
 	body := fmt.Sprintf(`
@@ -170,8 +159,7 @@ func (s *EmailService) SendPasswordResetConfirmationEmail(to string) error {
 		"Content-Type: text/html; charset=\"UTF-8\";\r\n" +
 		"\r\n" + body + "\r\n")
 
-	// SMTP認証情報の設定
-	auth := smtp.PlainAuth("", smtpUsername, smtpPassword, smtpHost)
-
-	return smtp.SendMail(smtpHost+":"+smtpPort, auth, from, []string{to}, message)
+	host, port, auth := getSMTPConfig()
+	addr := fmt.Sprintf("%s:%s", host, port)
+	return smtp.SendMail(addr, auth, from, []string{to}, message)
 }

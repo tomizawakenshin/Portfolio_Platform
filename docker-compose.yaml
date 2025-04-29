@@ -1,0 +1,84 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres_EngineerPortfolio
+    ports:
+      - 5432:5432
+    volumes:
+      - ./docker/postgres/init.d:/docker-entrypoint-initdb.d
+      - ./docker/postgres/pgdata:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: ginuser
+      POSTGRES_PASSWORD: ginpassword
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
+      POSTGRES_DB: EngineerPortfolio
+      TZ: UTC # タイムゾーンをUTCに設定
+    hostname: postgres
+    restart: always
+    user: root
+
+  pgadmin:
+    image: dpage/pgadmin4
+    restart: always
+    ports:
+      - 81:80
+    environment:
+      PGADMIN_DEFAULT_EMAIL: gin@example.com
+      PGADMIN_DEFAULT_PASSWORD: ginpassword
+    volumes:
+      - ./docker/pgadmin:/var/lib/pgadmin
+    depends_on:
+      - postgres
+
+  mailhog:
+    image: mailhog/mailhog
+    platform: linux/amd64
+    container_name: mailhog
+    ports:
+      - "1025:1025"   # SMTP ポート（アプリからメール送信）
+      - "8025:8025"   # Web UI ポート（http://localhost:8025 で受信メール閲覧）
+    restart: always
+  
+  swagger-ui:
+    image: swaggerapi/swagger-ui:latest
+    container_name: swagger_ui
+    ports:
+      - "8081:8080"
+    environment:
+      # appコンテナで生成されたswagger.jsonのパス
+      SWAGGER_JSON: /docs/swagger.json
+    volumes:
+      - ./docs:/docs:ro
+    depends_on:
+      - backend
+
+  backend:
+      build:
+        context: ./backend
+        dockerfile: Dockerfile.dev
+      container_name: backend-dev
+      ports:
+        - "8080:8080"
+      volumes:
+        - ./backend:/app        # backend フォルダ丸ごとマウント
+      env_file:
+        - ./backend/.env
+      depends_on:
+        - postgres
+        - mailhog
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: frontend-dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app          # ソース丸ごとマウント
+      - /app/node_modules        # node_modules はコンテナ側を優先
+    environment:
+      # 開発中はブラウザ実行なので localhost:8080 で OK
+      - NEXT_PUBLIC_BACKEND_URL=http://localhost:8080
+    depends_on:
+      - backend

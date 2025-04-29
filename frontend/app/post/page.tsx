@@ -45,6 +45,7 @@ const PostPage = () => {
 
     // バリデーション用エラー
     const [errors, setErrors] = useState<{
+        general?: string;
         title?: string;
         genres?: string;
         images?: string;
@@ -201,47 +202,56 @@ const PostPage = () => {
             skills?: string;
         } = {};
         if (!title.trim()) {
-            newErrors.title = "必須項目です";
+            newErrors.title = "タイトルは必須です";
         }
         if (selectedGenres.length === 0) {
-            newErrors.genres = "必須項目です";
+            newErrors.genres = "ジャンルは1つ以上選択してください";
         }
         if (images.length === 0) {
-            newErrors.images = "必須項目です";
+            newErrors.images = "画像は少なくとも1枚必要です";
         }
         if (skills.length === 0) {
-            newErrors.skills = "必須項目です";
+            newErrors.skills = "使用スキルを1つ以上選択してください";
         }
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
             return;
         }
         try {
-            const formData = new FormData();
-            formData.append("title", title);
-            formData.append("description", description);
-            selectedGenres.forEach((genre) => formData.append("genres", genre));
-            skills.forEach((skill) => formData.append("skills", skill));
-            images.forEach((image) =>
-                formData.append("images", image, image.name)
-            );
-            const response = await fetch(`${BACKEND_URL}/Portfolio/posts`, {
-                method: "POST",
-                credentials: "include",
-                body: formData,
-            });
-            if (!response.ok) {
-                throw new Error("投稿に失敗しました");
-            }
-            setDirty(false);
-            router.push("/home");
-        } catch (error) {
-            console.error("Error:", error);
+        const formData = new FormData();
+        formData.append("title", title);
+        formData.append("description", description);
+        selectedGenres.forEach((genre) => formData.append("genres", genre));
+        skills.forEach((skill) => formData.append("skills", skill));
+        images.forEach((image) => 
+            formData.append("images", image));
+
+        const response = await fetch(`${BACKEND_URL}/Portfolio/posts`, { // 小文字に統一すると RESTful
+            method: "POST",
+            credentials: "include",
+            body: formData,
+        });
+        const data = await response.json();
+        if (!response.ok) {
+            // サーバーが返したエラーメッセージを表示
+           setErrors({ general: data.error || "投稿に失敗しました" });
+            return;
         }
+        setDirty(false);
+        router.push("/home");
+    } catch (err) {
+        console.error(err);
+        setErrors({ general: "ネットワークエラーが発生しました" });
+    }
     };
 
     return (
         <div className="min-h-screen bg-white relative">
+            {errors.general && (
+      <div className="max-w-5xl mx-auto px-8 py-2">
+        <p className="text-red-600 font-bold">{errors.general}</p>
+      </div>
+    )}
             <Header
                 onPostClick={() => router.push("/post")}
                 userHasPhoto={!!(user && !!user.ProfileImageURL)}

@@ -43,18 +43,18 @@ func (r *AuthRepository) CreateUser(user models.User) error {
 }
 
 func (r *AuthRepository) FindUserByEmail(email string) (*models.User, error) {
-	return r.findUserByField(fieldEmail, email)
+	return r.FindUserByField(fieldEmail, email)
 }
 
 func (r *AuthRepository) FindUserByVerificationToken(token string) (*models.User, error) {
-	return r.findUserByField(fieldVerificationToken, token)
+	return r.FindUserByField(fieldVerificationToken, token)
 }
 
 func (r *AuthRepository) UpdateUser(user *models.User) error {
 	return r.db.Save(user).Error
 }
 
-func (r *AuthRepository) findUserByField(fieldName string, value interface{}) (*models.User, error) {
+func (r *AuthRepository) FindUserByField(fieldName string, value interface{}) (*models.User, error) {
 	var user models.User
 	result := r.db.Where(fmt.Sprintf("%s = ?", fieldName), value).First(&user)
 	if result.Error != nil {
@@ -87,5 +87,5 @@ func (r *AuthRepository) PermanentlyDeleteUsersBefore(cutoffTime time.Time) erro
 }
 
 func (r *AuthRepository) FindUserByPasswordResetToken(token string) (*models.User, error) {
-	return r.findUserByField(fieldPasswordResetToken, token)
+	return r.FindUserByField(fieldPasswordResetToken, token)
 }

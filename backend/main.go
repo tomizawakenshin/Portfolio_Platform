@@ -3,8 +3,10 @@
 package main
 
 import (
+	"backend/config"
 	"backend/controllers"
-	"backend/infra"
+	portfolioInfra "backend/infrastructure/portfolio"
+	userInfra "backend/infrastructure/user"
 	"backend/middlewares"
 	"backend/repositories"
 	"backend/services"
@@ -20,12 +22,11 @@ import (
 func setupRouter(db *gorm.DB, authService services.IAuthService) *gin.Engine {
 	frontendURL := os.Getenv("FRONTEND_URL")
 
-	authRepository := repositories.NewAuthRepository(db)
 	emailService := services.NewEmailService()
 	authController := controllers.NewAuthController(authService, emailService)
 
-	userRepository := repositories.NewUserRepository(db)
-	userService := services.NewUserService(userRepository, authRepository)
+	userRepository := userInfra.NewUserRepository(db)
+	userService := services.NewUserService(userRepository)
 	userController := controllers.NewUserController(userService)
 
 	jobTypeRepository := repositories.NewJobTypeRepository(db)
@@ -37,7 +38,8 @@ func setupRouter(db *gorm.DB, authService services.IAuthService) *gin.Engine {
 	optionsController := controllers.NewOptionsController(jobTypeService, skillService, genreService)
 
 	// ** 追加部分: 投稿関連のリポジトリ、サービス、コントローラの初期化 **
-	portfolioRepository := repositories.NewPortfolioRepository(db)
+	// portfolioRepository := repositories.NewPortfolioRepository(db)
+	portfolioRepository := portfolioInfra.NewPostRepo(db)
 	portfolioService := services.NewPortfolioService(portfolioRepository)
 	portfolioController := controllers.NewPortfolioController(portfolioService)
 
@@ -124,11 +126,11 @@ func startPermanentDeletionJob(authService services.IAuthService) {
 }
 
 func main() {
-	infra.Initialize()
-	db := infra.SetupDB()
+	config.Initialize()
+	db := config.SetupDB()
 
-	authRepository := repositories.NewAuthRepository(db)
-	authService := services.NewAuthService(authRepository)
+	userRepository := userInfra.NewUserRepository(db)
+	authService := services.NewAuthService(userRepository)
 
 	// クリーンアップジョブの開始
 	startSoftDeleteJob(authService)

@@ -1,15 +1,17 @@
 package main
 
 import (
-	"backend/infra"
+	"backend/config"
+	portfolioInfra "backend/infrastructure/portfolio"
+	userInfra "backend/infrastructure/user"
 	"backend/models"
 )
 
 func main() {
-	infra.Initialize()
-	db := infra.SetupDB()
+	config.Initialize()
+	db := config.SetupDB()
 
-	if err := db.AutoMigrate(&models.User{}, &models.JobType{}, &models.Skill{}, &models.Genre{}, &models.Post{}, &models.Image{}); err != nil {
+	if err := db.AutoMigrate(&userInfra.UserModel{}, &models.JobType{}, &models.Skill{}, &models.Genre{}, &portfolioInfra.PostModel{}, &portfolioInfra.ImageModel{}); err != nil {
 		panic("Failed to migrate db")
 	}
 }
