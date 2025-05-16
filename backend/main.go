@@ -5,8 +5,10 @@ package main
 import (
 	"backend/config"
 	"backend/controllers"
-	portfolioInfra "backend/infrastructure/portfolio"
 	userInfra "backend/infrastructure/user"
+	httpHandler "backend/internal/adapter/http"
+	persistence "backend/internal/adapter/persistence"
+	usecase "backend/internal/usecase"
 	"backend/middlewares"
 	"backend/repositories"
 	"backend/services"
@@ -39,9 +41,13 @@ func setupRouter(db *gorm.DB, authService services.IAuthService) *gin.Engine {
 
 	// ** 追加部分: 投稿関連のリポジトリ、サービス、コントローラの初期化 **
 	// portfolioRepository := repositories.NewPortfolioRepository(db)
-	portfolioRepository := portfolioInfra.NewPostRepo(db)
-	portfolioService := services.NewPortfolioService(portfolioRepository)
-	portfolioController := controllers.NewPortfolioController(portfolioService)
+	// portfolioRepository := portfolioInfra.NewPostRepo(db)
+	// portfolioService := services.NewPortfolioService(portfolioRepository)
+	// portfolioController := controllers.NewPortfolioController(portfolioService)
+
+	portfolioRepo := persistence.NewPostRepo(db)
+	portfolioUsecase := usecase.NewInteractor(portfolioRepo)
+	portfolioHandler := httpHandler.NewHandler(portfolioUsecase)
 
 	r := gin.Default()
 	r.Use(cors.New(cors.Config{
@@ -89,10 +95,10 @@ func setupRouter(db *gorm.DB, authService services.IAuthService) *gin.Engine {
 
 	// ** 追加部分: 投稿関連のエンドポイント **
 	portfolioRouterWithAuth := r.Group("/Portfolio", middlewares.AuthMiddleware(authService))
-	portfolioRouterWithAuth.POST("/posts", portfolioController.CreatePost)
-	portfolioRouterWithAuth.GET("/:id", portfolioController.GetPostByID)
-	portfolioRouterWithAuth.GET("/getUserPosts", portfolioController.GetPostsByUserID)
-	portfolioRouterWithAuth.GET("/getAllPosts", portfolioController.GetAllPosts)
+	portfolioRouterWithAuth.POST("/posts", portfolioHandler.CreatePost)
+	portfolioRouterWithAuth.GET("/:id", portfolioHandler.GetPostByID)
+	portfolioRouterWithAuth.GET("/getUserPosts", portfolioHandler.GetPostsByUserID)
+	portfolioRouterWithAuth.GET("/getAllPosts", portfolioHandler.GetAllPosts)
 
 	return r
 }
